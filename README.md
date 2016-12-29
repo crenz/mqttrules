@@ -55,7 +55,7 @@ In those templates, you can refer to pre-defined _parameters_ as well as to the 
 
 #### Examples
 
-`rules/lighting/switch_on`
+`rule/lighting/switch_on`
 
 ```json
 {

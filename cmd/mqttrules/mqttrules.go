@@ -21,12 +21,14 @@ func main() {
 
 	flag.Parse()
 
-	if (mqttrules.Connect(*pBroker, *pUsername, *pPassword)) {
-		mqttrules.Subscribe()
+	c := mqttrules.NewClient()
+
+	if (c.Connect(*pBroker, *pUsername, *pPassword)) {
+		c.Subscribe()
 		for
 		{
-			mqttrules.Listen()
+			c.Listen()
 		}
-		mqttrules.Disconnect()
+		c.Disconnect()
 	}
 }

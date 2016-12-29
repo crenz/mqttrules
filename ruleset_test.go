@@ -3,6 +3,8 @@ package mqttrules
 import "testing"
 
 func TestSetParameter(t *testing.T) {
+	testClient := NewClient()
+
 	for _, c := range []struct {
 		key, value string
 	}{
@@ -10,8 +12,8 @@ func TestSetParameter(t *testing.T) {
 		{"/rules/TTL", ""},
 		{"", ""},
 	} {
-		SetParameter(c.key, c.value)
-		result := GetParameter(c.key)
+		testClient.SetParameter(c.key, c.value)
+		result := testClient.GetParameter(c.key)
 		if result != c.value {
 			t.Errorf("GetParameter(%q) == %q, want %q", c.key, result, c.value)
 		}
@@ -19,7 +21,9 @@ func TestSetParameter(t *testing.T) {
 }
 
 func TestReplaceParamsInString(t *testing.T) {
-	SetParameter("test1", "value1")
+	testClient := NewClient()
+
+	testClient.SetParameter("test1", "value1")
 	for _, c := range []struct {
 		template, expected string
 	}{
@@ -29,7 +33,7 @@ func TestReplaceParamsInString(t *testing.T) {
 		{"testing$test1$123", "testingvalue1123"},
 		{"testing$test2$123", "testing123"},
 	} {
-		result := ReplaceParamsInString(c.template)
+		result := testClient.ReplaceParamsInString(c.template)
 		if result != c.expected {
 			t.Errorf("ReplaceParamsInString(%q); expected='%q', actual='%q'", c.template, c.expected, result)
 		}
@@ -37,11 +41,15 @@ func TestReplaceParamsInString(t *testing.T) {
 }
 
 func ExampleSetParameter() {
-	SetParameter("/rules/TTL", "60")
+	c := NewClient()
+
+	c.SetParameter("/rules/TTL", "60")
 }
 
 func ExampleGetParameter() {
-	GetParameter("/rules/TTL")
+	c := NewClient()
+
+	c.GetParameter("/rules/TTL")
 
 	//	result := GetParameter("/rules/TTL")
 
