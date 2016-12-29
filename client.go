@@ -117,7 +117,7 @@ func (c *client) handleIncomingRule(ruleset string, rule string, value string) {
 		return
 	}
 
-	TODO
+	//TODO
 
 }
 
