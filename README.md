@@ -105,7 +105,7 @@ Sent to the appropriate topic, the following payload will tie a parameter value 
 `Topic: param/test-tie-payload`
 ```json
 {
-    "tie": "/lighting/livingroom/status"
+    "topic": "/lighting/livingroom/status"
 }
 ```
 
@@ -114,8 +114,8 @@ Sent to the appropriate topic, the following payload will tie a parameter value 
 `param/test-tie-json-payload`
 ```json
 {
-    "tie": "/lighting/livingroom/status",
-    "json-path": ".value" 
+    "topic": "/lighting/livingroom/status",
+    "jsonPath": "$.value" 
 }
 ```
 

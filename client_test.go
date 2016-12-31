@@ -22,7 +22,7 @@ func TestSendParam(t *testing.T) {
 	} {
 		go func() { testClient.messages <- [2]string{fmt.Sprintf("mr/param/%s", c.key), c.value} }()
 		testClient.Listen()
-		result := testClient.GetParameter(c.key)
+		result := testClient.GetParameterValue(c.key)
 		if result != c.value {
 			t.Errorf("GetParameter(%q) == %q, want %q", c.key, result, c.value)
 		}
