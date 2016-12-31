@@ -1,7 +1,6 @@
 package mqttrules
 
 import (
-	"encoding/json"
 	"fmt"
 	"regexp"
 
@@ -25,12 +24,13 @@ type Client interface {
 	TriggerParameterUpdate(parameter string, value string)
 	ReplaceParamsInString(in string) string
 
-	SetRule(id string, conditions []string, actions []Action)
-	GetRule(id string) Rule
-	ExecuteRule(id string) Action
-
 	AddParameterSubscription(topic string, parameter string)
 	RemoveParameterSubscription(topic string, parameter string)
+	AddRuleSubscription(topic string, ruleset string, rule string)
+	RemoveRuleSubscription(topic string, ruleset string, rule string)
+
+	ExecuteRule(ruleset string, rule string, triggerPayload string)
+	Publish(topic string, qos byte, retained bool, payload string)
 }
 
 type rulesMap map[string]map[string]Rule
@@ -48,9 +48,10 @@ type client struct {
 	messages   chan [2]string
 	prefix     string
 
-	parameters    parameterMap
-	rules         rulesMap
-	subscriptions subscriptionsMap
+	parameters      parameterMap
+	parameterValues map[string]interface{}
+	rules           rulesMap
+	subscriptions   subscriptionsMap
 
 	regexParam *regexp.Regexp
 	regexRule  *regexp.Regexp
@@ -59,6 +60,7 @@ type client struct {
 func (c *client) initialize() {
 	c.SetPrefix("")
 	c.parameters = make(parameterMap)
+	c.parameterValues = make(map[string]interface{})
 	c.rules = make(rulesMap)
 	c.subscriptions = make(subscriptionsMap)
 }
@@ -93,6 +95,9 @@ func (c *client) Connect(broker string, username string, password string) bool {
 		return false
 	}
 
+	token = c.mqttClient.Publish("testing", 2, false, "")
+	token.Wait()
+
 	return true
 }
 
@@ -103,6 +108,14 @@ func (c *client) Subscribe() bool {
 	}
 	log.Infoln("Subscribed successfully")
 	return true
+}
+
+func (c *client) Publish(topic string, qos byte, retained bool, payload string) {
+	token := c.mqttClient.Publish(topic, 1, retained, payload)
+	token.Wait()
+	if token.Error() != nil {
+		log.Errorf("Error publishing MQTT topic [%s]: %v", topic, token.Error())
+	}
 }
 
 func (c *client) Listen() {
@@ -127,7 +140,9 @@ func (c *client) handleIncomingTrigger(topic string, payload string) {
 		c.TriggerParameterUpdate(key, payload)
 	}
 	for key := range c.subscriptions[topic].rules {
-		fmt.Println("TODO: Execute rule", key)
+		for subkey := range c.subscriptions[topic].rules[key] {
+			c.ExecuteRule(key, subkey, payload)
+		}
 	}
 }
 
@@ -149,14 +164,6 @@ func (c *client) ensureSubscription(topic string) bool {
 	return true
 }
 
-func (c *client) AddParameterSubscription(topic string, parameter string) {
-	if !c.ensureSubscription(topic) {
-		return
-	}
-
-	c.subscriptions[topic].parameters[parameter] = true
-}
-
 func (c *client) contemplateUnsubscription(topic string) bool {
 	if c.mqttClient == nil {
 		return false
@@ -173,33 +180,8 @@ func (c *client) contemplateUnsubscription(topic string) bool {
 	return true
 }
 
-func (c *client) RemoveParameterSubscription(topic string, parameter string) {
-	_, exists := c.subscriptions[topic]
-	if c.mqttClient == nil || !exists {
-		return
-	}
-
-	delete(c.subscriptions[topic].parameters, parameter)
-
-	c.contemplateUnsubscription(topic)
-}
-
 func (c *client) handleIncomingParam(param string, value string) {
 	c.SetParameter(param, value)
-}
-
-func (c *client) handleIncomingRule(ruleset string, rule string, value string) {
-	log.Infof("Received rule '%s/%s'", ruleset, rule)
-
-	var r Rule
-	err := json.Unmarshal([]byte(value), &r)
-	if err != nil {
-		log.Errorf("Unable to parse JSON string: %s", err)
-		return
-	}
-
-	//TODO
-
 }
 
 func (c *client) Disconnect() {

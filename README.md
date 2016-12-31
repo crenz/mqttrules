@@ -127,6 +127,6 @@ Sent to the appropriate topic, the following payload will tie a parameter value 
 
 ## License
 
-Copyright (C) 2016 Christian Renz. Licensed under the MIT License (see LICENSE).
+Copyright (C) 2016-2017 Christian Renz. Licensed under the MIT License (see LICENSE).
 
 

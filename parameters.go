@@ -27,6 +27,7 @@ func (c *client) SetParameter(parameter string, value string) {
 	err := json.Unmarshal([]byte(value), &p)
 	if err != nil {
 		c.parameters[parameter] = &Parameter{value, "", ""}
+		c.SetParameterValue(parameter, value)
 		log.Infof("Setting parameter %s to non-JSON value", parameter)
 		return
 	}
@@ -34,11 +35,16 @@ func (c *client) SetParameter(parameter string, value string) {
 		c.RemoveParameterSubscription(p.Topic, parameter)
 	}
 	c.parameters[parameter] = &p
+	c.SetParameterValue(parameter, p.Value)
 	if len(c.parameters[parameter].Topic) > 0 {
 		c.AddParameterSubscription(p.Topic, parameter)
 	}
-	log.Infof("Setting parameter %s to JSON value %s", parameter, fmt.Sprintf("%+v\n", p))
+	log.Infof("Setting parameter %s to JSON value %+v\n", parameter, p)
 
+}
+
+func (c *client) SetParameterValue(parameter string, value interface{}) {
+	c.parameterValues[parameter] = value
 }
 
 func (c *client) TriggerParameterUpdate(parameter string, value string) {
@@ -63,18 +69,19 @@ func (c *client) TriggerParameterUpdate(parameter string, value string) {
 			log.Errorf("JSON error when updating parameter %s: %v", parameter, err)
 			return
 		}
-		c.parameters[parameter].Value = fmt.Sprintf("%v", res)
+		c.SetParameterValue(parameter, res)
 		log.Infof("Updated parameter %s to value %s", parameter, c.parameters[parameter].Value)
 	}
 
 }
 
 func (c *client) GetParameterValue(parameter string) string {
-	if c.parameters[parameter] == nil {
-		return ""
+	v := c.parameterValues[parameter]
+	if v == nil {
+		v = ""
 	}
 
-	return c.parameters[parameter].Value
+	return fmt.Sprintf("%v", v)
 }
 
 func (c *client) ReplaceParamsInString(in string) string {
@@ -91,4 +98,23 @@ func (c *client) ReplaceParamsInString(in string) string {
 		return c.GetParameterValue(i[1 : len(i)-1])
 	})
 	return out
+}
+
+func (c *client) AddParameterSubscription(topic string, parameter string) {
+	if !c.ensureSubscription(topic) {
+		return
+	}
+
+	c.subscriptions[topic].parameters[parameter] = true
+}
+
+func (c *client) RemoveParameterSubscription(topic string, parameter string) {
+	_, exists := c.subscriptions[topic]
+	if c.mqttClient == nil || !exists {
+		return
+	}
+
+	delete(c.subscriptions[topic].parameters, parameter)
+
+	c.contemplateUnsubscription(topic)
 }
