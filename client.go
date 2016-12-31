@@ -11,6 +11,7 @@ import (
 
 //import "github.com/robfig/cron"
 
+// MQTT Rules Client
 type Client interface {
 	Connect(broker string, username string, password string) bool
 	Subscribe() bool
@@ -62,6 +63,7 @@ func (c *client) initialize() {
 	c.subscriptions = make(subscriptionsMap)
 }
 
+// Creates and initializes a new MQTT rules client
 func NewClient() Client {
 	c := &client{}
 	c.initialize()

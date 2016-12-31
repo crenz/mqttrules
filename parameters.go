@@ -9,6 +9,7 @@ import (
 	"github.com/oliveagle/jsonpath"
 )
 
+// Parameter used in MQTT rules; can be updated from incoming MQTT messages
 type Parameter struct {
 	Value    string
 	Topic    string
@@ -51,13 +52,13 @@ func (c *client) TriggerParameterUpdate(parameter string, value string) {
 		c.parameters[parameter].Value = value
 		log.Infof("Updated parameter %s to non-JSON value %s", parameter, fmt.Sprintf("%+v\n", p))
 	} else {
-		var json_data interface{}
-		err := json.Unmarshal([]byte(value), &json_data)
+		var jsonData interface{}
+		err := json.Unmarshal([]byte(value), &jsonData)
 		if err != nil {
 			log.Errorf("JSON parsing error when updating parameter %s: %v", parameter, err)
 			return
 		}
-		res, err := jsonpath.JsonPathLookup(json_data, p.JsonPath)
+		res, err := jsonpath.JsonPathLookup(jsonData, p.JsonPath)
 		if err != nil {
 			log.Errorf("JSON error when updating parameter %s: %v", parameter, err)
 			return
@@ -71,9 +72,9 @@ func (c *client) TriggerParameterUpdate(parameter string, value string) {
 func (c *client) GetParameterValue(parameter string) string {
 	if c.parameters[parameter] == nil {
 		return ""
-	} else {
-		return c.parameters[parameter].Value
 	}
+
+	return c.parameters[parameter].Value
 }
 
 func (c *client) ReplaceParamsInString(in string) string {
@@ -85,9 +86,9 @@ func (c *client) ReplaceParamsInString(in string) string {
 		if len(i) == 2 {
 			// '$$' -> '$'
 			return "$"
-		} else {
-			return c.GetParameterValue(i[1 : len(i)-1])
 		}
+
+		return c.GetParameterValue(i[1 : len(i)-1])
 	})
 	return out
 }

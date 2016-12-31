@@ -1,10 +1,11 @@
 [![Build Status](https://travis-ci.org/crenz/mqttrules.svg?branch=master)](https://travis-ci.org/crenz/mqttrules)
+[![Go Report Card](https://goreportcard.com/badge/github.com/crenz/mqttrules)](https://goreportcard.com/report/github.com/crenz/mqttrules)
 
 # mqttrules
 
 mqttrules executes rules that operate on MQTT messages. The rules are defined by sending MQTT messages.
 
-**NOTE: This project is currently in the design stage. There's no code yet.**
+**NOTE: This project is currently in an alpha stage. There's no fully working code yet.**
 
 ## 
 
