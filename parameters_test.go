@@ -3,10 +3,12 @@ package mqttrules
 import (
 	"strings"
 	"testing"
+
+	"github.com/crenz/mqttrules/testmqttrules"
 )
 
 func TestSetParameter(t *testing.T) {
-	testClient := NewClient()
+	testClient := NewClient(testmqttrules.NewClient(), "")
 
 	for _, c := range []struct {
 		key, value string
@@ -24,7 +26,7 @@ func TestSetParameter(t *testing.T) {
 }
 
 func TestSetParameter_JSON(t *testing.T) {
-	testClient := NewClient()
+	testClient := NewClient(testmqttrules.NewClient(), "")
 
 	key := "JSONTest"
 
@@ -45,7 +47,7 @@ func TestSetParameter_JSON(t *testing.T) {
 }
 
 func TestReplaceParamsInString(t *testing.T) {
-	testClient := NewClient()
+	testClient := NewClient(testmqttrules.NewClient(), "")
 
 	testClient.SetParameter("test1", "value1")
 	for _, c := range []struct {

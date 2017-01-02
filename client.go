@@ -10,9 +10,19 @@ import (
 
 //import "github.com/robfig/cron"
 
+// Interface for MQTT client used to interface with broker
+type MqttClient interface {
+	IsConnected() bool
+	Connect() bool
+	Disconnect()
+	Publish(topic string, qos byte, retained bool, payload interface{}) bool
+	Subscribe(topic string, qos byte, callback mqtt.MessageHandler) bool
+	Unsubscribe(topics ...string) bool
+}
+
 // MQTT Rules Client
 type Client interface {
-	Connect(broker string, username string, password string) bool
+	Connect() bool
 	Subscribe() bool
 	Listen()
 	Disconnect()
@@ -44,7 +54,7 @@ type subscriptions struct {
 type subscriptionsMap map[string]subscriptions
 
 type client struct {
-	mqttClient mqtt.Client
+	mqttClient MqttClient
 	messages   chan [2]string
 	prefix     string
 
@@ -53,8 +63,9 @@ type client struct {
 	rules           rulesMap
 	subscriptions   subscriptionsMap
 
-	regexParam *regexp.Regexp
-	regexRule  *regexp.Regexp
+	regexParam     *regexp.Regexp
+	regexRule      *regexp.Regexp
+	messagehandler mqtt.MessageHandler
 }
 
 func (c *client) initialize() {
@@ -63,58 +74,36 @@ func (c *client) initialize() {
 	c.parameterValues = make(map[string]interface{})
 	c.rules = make(rulesMap)
 	c.subscriptions = make(subscriptionsMap)
+	c.messagehandler = func(client mqtt.Client, msg mqtt.Message) {
+		c.messages <- [2]string{msg.Topic(), string(msg.Payload())}
+	}
+	c.messages = make(chan [2]string)
 }
 
 // Creates and initializes a new MQTT rules client
-func NewClient() Client {
+func NewClient(mqttClient MqttClient, prefix string) Client {
 	c := &client{}
 	c.initialize()
+	c.mqttClient = mqttClient
+	c.prefix = prefix
 
 	return c
 }
 
-func (c *client) Connect(broker string, username string, password string) bool {
-	log.Infoln("Connecting to MQTT broker", broker)
+func (c *client) Connect() bool {
+	log.Infoln("Connecting to MQTT broker")
 
-	opts := mqtt.NewClientOptions()
-	opts.SetClientID("mqtt-rules/0.1")
-	opts.AddBroker(broker)
-	opts.SetUsername(username)
-	opts.SetPassword(password)
-
-	c.messages = make(chan [2]string)
-	opts.SetDefaultPublishHandler(func(client mqtt.Client, msg mqtt.Message) {
-		c.messages <- [2]string{msg.Topic(), string(msg.Payload())}
-	})
-
-	c.mqttClient = mqtt.NewClient(opts)
-	token := c.mqttClient.Connect()
-	token.Wait()
-	if token.Error() != nil {
-		log.Errorln(token.Error())
-		return false
-	}
-
-	token = c.mqttClient.Publish("testing", 2, false, "")
-	token.Wait()
-
-	return true
+	return c.mqttClient.Connect()
 }
 
 func (c *client) Subscribe() bool {
-	if token := c.mqttClient.Subscribe("#", byte(1), nil); token.Wait() && token.Error() != nil {
-		log.Errorln(token.Error())
-		return false
-	}
-	log.Infoln("Subscribed successfully")
-	return true
+	return c.mqttClient.Subscribe("#", byte(1), c.messagehandler)
 }
 
 func (c *client) Publish(topic string, qos byte, retained bool, payload string) {
-	token := c.mqttClient.Publish(topic, 1, retained, payload)
-	token.Wait()
-	if token.Error() != nil {
-		log.Errorf("Error publishing MQTT topic [%s]: %v", topic, token.Error())
+
+	if success := c.mqttClient.Publish(topic, 1, retained, payload); !success {
+		log.Errorf("Error publishing MQTT topic [%s]", topic)
 	}
 }
 
@@ -155,8 +144,8 @@ func (c *client) ensureSubscription(topic string) bool {
 		c.subscriptions[topic] = subscriptions{parameters: make(map[string]bool), rules: make(map[string]map[string]bool)}
 	}
 	if len(c.subscriptions[topic].parameters) == 0 && len(c.subscriptions[topic].rules) == 0 {
-		if token := c.mqttClient.Subscribe(topic, byte(1), nil); token.Wait() && token.Error() != nil {
-			log.Errorln("Failed to add subscription [%s]: %v", topic, token.Error())
+		if success := c.mqttClient.Subscribe(topic, byte(1), c.messagehandler); !success {
+			log.Errorln("Failed to add subscription [%s]")
 			return false
 		}
 		log.Infof("Subscribed to MQTT topic [%s]", topic)
@@ -171,8 +160,8 @@ func (c *client) contemplateUnsubscription(topic string) bool {
 
 	if len(c.subscriptions[topic].parameters) == 0 && len(c.subscriptions[topic].rules) == 0 {
 		delete(c.subscriptions, topic)
-		if token := c.mqttClient.Unsubscribe(topic); token.Wait() && token.Error() != nil {
-			log.Errorln("Failed to remove subscription [%s]: %v", topic, token.Error())
+		if success := c.mqttClient.Unsubscribe(topic); !success {
+			log.Errorln("Failed to remove subscription [%s]")
 			return false
 		}
 		log.Infof("Unsubscribed from MQTT topic [%s]", topic)
@@ -186,7 +175,7 @@ func (c *client) handleIncomingParam(param string, value string) {
 
 func (c *client) Disconnect() {
 	log.Infoln("Disconnecting from MQTT broker")
-	c.mqttClient.Disconnect(250)
+	c.mqttClient.Disconnect()
 }
 
 func (c *client) SetPrefix(prefix string) {
