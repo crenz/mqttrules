@@ -1,8 +1,8 @@
 package mqttrules
 
 import (
-	"testing"
 	"fmt"
+	"testing"
 )
 
 func TestSendParam(t *testing.T) {
@@ -27,6 +27,5 @@ func TestSendParam(t *testing.T) {
 			t.Errorf("GetParameter(%q) == %q, want %q", c.key, result, c.value)
 		}
 	}
-
 
 }

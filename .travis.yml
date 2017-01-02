@@ -8,8 +8,7 @@ go:
 install:
   - go get golang.org/x/tools/cmd/cover
   - go get github.com/mattn/goveralls
-  - wget https://raw.githubusercontent.com/h12w/gosweep/master/gosweep.sh
 script:
   - go get -t -v ./...
-  - sh gosweep.sh
+  - sh testmqttrules/gosweep.sh
   - $HOME/gopath/bin/goveralls -coverprofile=profile.cov -service=travis-ci
