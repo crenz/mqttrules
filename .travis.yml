@@ -6,9 +6,13 @@ go:
   - 1.7
   - tip
 install:
+  - go get github.com/gordonklaus/ineffassign
+  - go get github.com/bradfitz/goimports
   - go get golang.org/x/tools/cmd/cover
   - go get github.com/mattn/goveralls
+  - go get github.com/golang/lint
 script:
   - go get -t -v ./...
+  - export PATH=$PATH:$HOME/gopath/bin
   - sh testmqttrules/gosweep.sh
   - $HOME/gopath/bin/goveralls -coverprofile=profile.cov -service=travis-ci
