@@ -6,7 +6,7 @@
 
 mqttrules executes rules that operate on MQTT messages. The rules are defined by sending MQTT messages.
 
-**NOTE: This project is currently in an alpha stage. There's no fully working code yet.**
+**NOTE: This project is currently in an alpha stage. **
 
 ## 
 
@@ -125,6 +125,13 @@ Sent to the appropriate topic, the following payload will tie a parameter value 
 ## Components
 
 * `cmd/mqttrules/mqttrules.go`: utility to run mqttrules
+
+## Kudos
+
+mqttrules is made possible by leveraging some awesome Go packages:
+
+[govaluate](https://github.com/Knetic/govaluate) - Arbitrary expression evaluation for golang
+[jsonpath](https://github.com/oliveagle/jsonpath) - A golang implementation of JsonPath syntax.
 
 ## License
 
