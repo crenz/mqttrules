@@ -1,0 +1,31 @@
+{
+  "config": {
+    "broker": "tcp://localhost:1883",
+    "username": "",
+    "password": "",
+    "receiveRulesViaMQTT": true
+  },
+  "parameters": {
+    "lights_kitchen_state": {
+      "value": "",
+      "topic": "hue/status/lights/Kitchen light",
+      "JSONPath": "$.on"
+    }
+  },
+  "rules": {
+    "lights": {
+      "kitchen-switch": {
+        "trigger": "home/dash/status/On2",
+        "condition": "payload() > 0",
+        "actions": [
+          {
+            "topic": "hue/set/lights/Kitchen light",
+            "payload": "{ \"on\" : ${!lights_kitchen_state}}",
+            "qos": 2,
+            "retain": false
+          }
+        ]
+      }
+    }
+  }
+}

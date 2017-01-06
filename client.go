@@ -9,6 +9,7 @@ import (
 )
 
 //import "github.com/robfig/cron"
+//import "github.com/davecgh/go-spew/spew"
 
 // Interface for MQTT client used to interface with broker
 type MqttClient interface {
@@ -41,6 +42,7 @@ type Client interface {
 
 	ExecuteRule(ruleset string, rule string, triggerPayload string)
 	Publish(topic string, qos byte, retained bool, payload string)
+	IsSubscribed(topic string) bool
 }
 
 type rulesMap map[string]map[string]Rule
@@ -102,7 +104,7 @@ func (c *client) Subscribe() bool {
 
 func (c *client) Publish(topic string, qos byte, retained bool, payload string) {
 
-	if success := c.mqttClient.Publish(topic, 1, retained, payload); !success {
+	if success := c.mqttClient.Publish(topic, qos, retained, payload); !success {
 		log.Errorf("Error publishing MQTT topic [%s]", topic)
 	}
 }
@@ -136,7 +138,7 @@ func (c *client) handleIncomingTrigger(topic string, payload string) {
 }
 
 func (c *client) ensureSubscription(topic string) bool {
-	if c.mqttClient == nil {
+	if c.mqttClient == nil || len(topic) == 0 {
 		return false
 	}
 
@@ -187,4 +189,9 @@ func (c *client) SetPrefix(prefix string) {
 
 func (c *client) GetPrefix() string {
 	return c.prefix
+}
+
+func (c *client) IsSubscribed(topic string) bool {
+	_, exists := c.subscriptions[topic]
+	return exists
 }

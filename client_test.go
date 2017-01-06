@@ -3,7 +3,48 @@ package mqttrules
 import (
 	"fmt"
 	"testing"
+
+	"strings"
+
+	"github.com/crenz/mqttrules/testmqttrules"
+	"github.com/davecgh/go-spew/spew"
 )
+
+func TestClient_ConnectSubscribeDisconnect(t *testing.T) {
+	mqttClient := testmqttrules.NewClient()
+	testClient := NewClient(mqttClient, "")
+
+	if !testClient.Connect() {
+		t.Error("Failed to connect")
+	}
+	if !testClient.Subscribe() {
+		t.Error("Failed to subscribe")
+	}
+	testClient.Disconnect()
+
+}
+
+func TestClient_Publish(t *testing.T) {
+	mqttClient := testmqttrules.NewClient()
+	testClient := NewClient(mqttClient, "")
+
+	for _, c := range []struct {
+		topic    string
+		qos      byte
+		retained bool
+		payload  string
+	}{
+		{"", 0, false, ""},
+	} {
+		testClient.Publish(c.topic, c.qos, c.retained, c.payload)
+		message := mqttClient.LastMessage()
+		if strings.Compare(c.topic, message.Topic) != 0 || c.qos != message.QoS || c.retained != message.Retained {
+			t.Errorf("Message was not published properly")
+			spew.Dump(map[string]interface{}{"Test data": c, "Result": message})
+		}
+	}
+
+}
 
 func TestSendParam(t *testing.T) {
 	// Don't use NewClient to enable access to private field messages
@@ -27,5 +68,4 @@ func TestSendParam(t *testing.T) {
 			t.Errorf("GetParameter(%q) == %q, want %q", c.key, result, c.value)
 		}
 	}
-
 }

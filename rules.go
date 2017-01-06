@@ -5,6 +5,7 @@ import (
 
 	"github.com/Knetic/govaluate"
 	log "github.com/Sirupsen/logrus"
+	"github.com/oliveagle/jsonpath"
 )
 
 type Action struct {
@@ -82,7 +83,9 @@ func (c *client) RemoveRuleSubscription(topic string, ruleset string, rule strin
 	}
 
 	delete(c.subscriptions[topic].rules[ruleset], rule)
-
+	if len(c.subscriptions[topic].rules[ruleset]) == 0 {
+		delete(c.subscriptions[topic].rules, ruleset)
+	}
 	c.contemplateUnsubscription(topic)
 }
 
@@ -90,8 +93,37 @@ func (c *client) ExecuteRule(ruleset string, rule string, triggerPayload string)
 	log.Infof("Executing rule %s/%s", ruleset, rule)
 
 	r := c.rules[ruleset][rule]
-	if r.conditionExpression != nil {
-		result, err := r.conditionExpression.Evaluate(c.parameterValues)
+	if len(r.Condition) > 0 {
+		fPayload := func(args ...interface{}) (interface{}, error) {
+			if len(args) == 0 {
+				// No JSON path given - return whole payload
+				return triggerPayload, nil
+			}
+			var jsonData interface{}
+			err := json.Unmarshal([]byte(triggerPayload), &jsonData)
+			if err != nil {
+				log.Errorf("JSON parsing error in trigger payload when executing rule %s/%s: %v", ruleset, rule, err)
+				return triggerPayload, err
+			}
+			res, err := jsonpath.JsonPathLookup(jsonData, args[0].(string))
+			if err != nil {
+				log.Errorf("JSON lookup error in trigger payload when executing rule %s/%s: %v", ruleset, rule, err)
+				return triggerPayload, err
+			}
+
+			return res, nil
+		}
+
+		functions := map[string]govaluate.ExpressionFunction{
+			"payload": fPayload,
+		}
+
+		expression, err := govaluate.NewEvaluableExpressionWithFunctions(r.Condition, functions)
+		if err != nil {
+			log.Errorln("Error parsing condition:", err)
+			return
+		}
+		result, err := expression.Evaluate(c.parameterValues)
 		if err != nil {
 			log.Errorln("Error evaluating condition:", err)
 			return

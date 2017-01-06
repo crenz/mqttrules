@@ -14,4 +14,4 @@
 - Access to payload of incoming messages via JSON path
 - Read in JSON file with rules & parameters upon startup
 - Flag to enable switching off receiving new rules during operation
-…
+- Allow expressions in parameter definitions (for formulas etc.)

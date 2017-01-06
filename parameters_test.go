@@ -66,6 +66,49 @@ func TestReplaceParamsInString(t *testing.T) {
 	}
 }
 
+func TestAddParameterSubscription(t *testing.T) {
+	testClient := NewClient(testmqttrules.NewClient(), "")
+
+	for _, c := range []struct {
+		topic  string
+		result bool
+	}{
+		{"", false},
+		{"test", true},
+	} {
+		testClient.AddParameterSubscription(c.topic, "param")
+		result := testClient.IsSubscribed(c.topic)
+		if result != c.result {
+			t.Errorf("IsSubscribed(%q, ...) == %v, want %v", c.topic, result, c.result)
+		}
+	}
+}
+
+func TestRemoveParameterSubscription(t *testing.T) {
+	testClient := NewClient(testmqttrules.NewClient(), "")
+
+	topic := "topic"
+	param := "param"
+
+	testClient.AddParameterSubscription(topic, param)
+	result := testClient.IsSubscribed(topic)
+	if !result {
+		t.Errorf("Failed to add param subscription")
+	}
+	testClient.RemoveParameterSubscription(topic, param)
+	result = testClient.IsSubscribed(topic)
+	if result {
+		t.Errorf("Failed to remove param subscription")
+	}
+	testClient.AddParameterSubscription(topic, param)
+	testClient.AddParameterSubscription(topic, "another_param")
+	testClient.RemoveParameterSubscription(topic, param)
+	result = testClient.IsSubscribed(topic)
+	if !result {
+		t.Errorf("Param subscription was removed even though another parameter still needs it")
+	}
+}
+
 /*
 func ExampleSetParameter() {
 	//	c := NewClient()
