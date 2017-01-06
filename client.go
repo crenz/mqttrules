@@ -45,12 +45,16 @@ type Client interface {
 	IsSubscribed(topic string) bool
 }
 
-type rulesMap map[string]map[string]Rule
+type rulesKey struct {
+	ruleset, rule string
+}
+
+type rulesMap map[rulesKey]Rule
 
 type subscriptions struct {
 	//TODO Use slices instead of maps
 	parameters map[string]bool
-	rules      map[string]map[string]bool
+	rules      map[rulesKey]bool
 }
 
 type subscriptionsMap map[string]subscriptions
@@ -131,9 +135,7 @@ func (c *client) handleIncomingTrigger(topic string, payload string) {
 		c.TriggerParameterUpdate(key, payload)
 	}
 	for key := range c.subscriptions[topic].rules {
-		for subkey := range c.subscriptions[topic].rules[key] {
-			c.ExecuteRule(key, subkey, payload)
-		}
+		c.ExecuteRule(key.ruleset, key.rule, payload)
 	}
 }
 
@@ -143,7 +145,7 @@ func (c *client) ensureSubscription(topic string) bool {
 	}
 
 	if _, exists := c.subscriptions[topic]; !exists {
-		c.subscriptions[topic] = subscriptions{parameters: make(map[string]bool), rules: make(map[string]map[string]bool)}
+		c.subscriptions[topic] = subscriptions{parameters: make(map[string]bool), rules: make(map[rulesKey]bool)}
 	}
 	if len(c.subscriptions[topic].parameters) == 0 && len(c.subscriptions[topic].rules) == 0 {
 		if success := c.mqttClient.Subscribe(topic, byte(1), c.messagehandler); !success {

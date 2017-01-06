@@ -43,15 +43,13 @@ func (c *client) handleIncomingRule(ruleset string, rule string, value string) {
 		}
 	}
 
-	if c.rules != nil && len(c.rules[ruleset][rule].Trigger) > 0 {
+	rk := rulesKey{ruleset, rule}
+
+	if c.rules != nil && len(c.rules[rk].Trigger) > 0 {
 		c.RemoveRuleSubscription(r.Trigger, ruleset, rule)
 	}
 
-	_, exists := c.rules[ruleset]
-	if !exists {
-		c.rules[ruleset] = make(map[string]Rule)
-	}
-	c.rules[ruleset][rule] = r
+	c.rules[rk] = r
 
 	if len(r.Trigger) > 0 {
 		c.AddRuleSubscription(r.Trigger, ruleset, rule)
@@ -69,11 +67,7 @@ func (c *client) AddRuleSubscription(topic string, ruleset string, rule string) 
 		return
 	}
 
-	_, exists := c.subscriptions[topic].rules[ruleset]
-	if !exists {
-		c.subscriptions[topic].rules[ruleset] = make(map[string]bool)
-	}
-	c.subscriptions[topic].rules[ruleset][rule] = true
+	c.subscriptions[topic].rules[rulesKey{ruleset, rule}] = true
 }
 
 func (c *client) RemoveRuleSubscription(topic string, ruleset string, rule string) {
@@ -82,17 +76,14 @@ func (c *client) RemoveRuleSubscription(topic string, ruleset string, rule strin
 		return
 	}
 
-	delete(c.subscriptions[topic].rules[ruleset], rule)
-	if len(c.subscriptions[topic].rules[ruleset]) == 0 {
-		delete(c.subscriptions[topic].rules, ruleset)
-	}
+	delete(c.subscriptions[topic].rules, rulesKey{ruleset, rule})
 	c.contemplateUnsubscription(topic)
 }
 
 func (c *client) ExecuteRule(ruleset string, rule string, triggerPayload string) {
 	log.Infof("Executing rule %s/%s", ruleset, rule)
 
-	r := c.rules[ruleset][rule]
+	r := c.rules[rulesKey{ruleset, rule}]
 	if len(r.Condition) > 0 {
 		fPayload := func(args ...interface{}) (interface{}, error) {
 			if len(args) == 0 {
