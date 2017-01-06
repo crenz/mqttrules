@@ -6,6 +6,7 @@
 - Godoc
 - Update spec to reflect changes in functionality
 - Increase code coverage
+- Concurrency protection for maps: https://blog.golang.org/go-maps-in-action
 
 ## Functionality
 
@@ -15,3 +16,4 @@
 - Read in JSON file with rules & parameters upon startup
 - Flag to enable switching off receiving new rules during operation
 - Allow expressions in parameter definitions (for formulas etc.)
+- Enabling/disabling of rules/rulesets

@@ -130,8 +130,8 @@ Sent to the appropriate topic, the following payload will tie a parameter value 
 
 mqttrules is made possible by leveraging some awesome Go packages:
 
-[govaluate](https://github.com/Knetic/govaluate) - Arbitrary expression evaluation for golang
-[jsonpath](https://github.com/oliveagle/jsonpath) - A golang implementation of JsonPath syntax.
+* [govaluate](https://github.com/Knetic/govaluate) - Arbitrary expression evaluation for golang
+* [jsonpath](https://github.com/oliveagle/jsonpath) - A golang implementation of JsonPath syntax.
 
 ## License
 
