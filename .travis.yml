@@ -1,17 +1,31 @@
 language: go
 
+sudo: required
+
+services:
+  - docker
+
 go:
   - 1.5
   - 1.6
   - 1.7
   - tip
+
 install:
   - go get github.com/gordonklaus/ineffassign
   - go get github.com/bradfitz/goimports
   - go get golang.org/x/tools/cmd/cover
   - go get github.com/mattn/goveralls
+  - docker build -t crenz/mqttrules docker/default
+
 script:
   - go get -t -v ./...
   - export PATH=$PATH:$HOME/gopath/bin
   - sh testmqttrules/gosweep.sh
   - $HOME/gopath/bin/goveralls -coverprofile=profile.cov -service=travis-ci
+
+after_success:
+  - if [ "$TRAVIS_BRANCH" == "master" ]; then
+    docker login -u="$DOCKER_USER" -p="$DOCKER_PASS";
+    docker push crenz/mqttrules;
+    fi

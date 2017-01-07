@@ -5,4 +5,4 @@ RUN go get -t -v github.com/crenz/mqttrules/cmd/mqttrules
 
 VOLUME /var/lib/mqttrules
 
-CMD ["/go/bin/mqttrules"]
+CMD ["/gopath1.5/bin/mqttrules"]
