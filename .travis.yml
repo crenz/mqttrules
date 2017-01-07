@@ -21,7 +21,7 @@ install:
 script:
   - go get -t -v ./...
   - export PATH=$PATH:$HOME/gopath/bin
-  - sh testmqttrules/gosweep.sh
+  - sh test/gosweep.sh
   - $HOME/gopath/bin/goveralls -coverprofile=profile.cov -service=travis-ci
 
 after_success:
