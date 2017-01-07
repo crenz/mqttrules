@@ -1,7 +1,6 @@
 package agent
 
 import (
-	"strings"
 	"testing"
 
 	"github.com/crenz/mqttrules/test"
@@ -30,19 +29,29 @@ func TestSetParameter_JSON(t *testing.T) {
 
 	key := "JSONTest"
 
-	result := testClient.GetParameterValue(key)
+	result := testClient.GetParameterValue(key).(string)
 	if len(result) != 0 {
 		t.Errorf("GetParameter(%q) == %q, want empty string", key, result)
 	}
 
 	testClient.SetParameter(key, `{
-    "value": "42",
+    "value": 42.2,
     "topic": "lighting/livingroom/status",
     "jsonPath": "$.value"
 }`)
-	result = testClient.GetParameterValue(key)
-	if strings.Compare(result, "42") != 0 {
-		t.Errorf("GetParameter(%q) == %q, want %q", key, result, "42")
+	resultFloat := testClient.GetParameterValue(key).(float64)
+	if resultFloat != 42.2 {
+		t.Errorf("GetParameterValue(%q) == %v, want %v", key, result, 42.2)
+	}
+
+	testClient.SetParameter(key, `{
+    "value": 42,
+    "topic": "lighting/livingroom/status",
+    "jsonPath": "$.value"
+}`)
+	resultFloat = testClient.GetParameterValue(key).(float64)
+	if resultFloat != 42 {
+		t.Errorf("GetParameterValue(%q) == %v, want %v", key, result, 42)
 	}
 }
 

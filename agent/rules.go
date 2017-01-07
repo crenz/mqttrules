@@ -6,6 +6,7 @@ import (
 	"github.com/Knetic/govaluate"
 	log "github.com/Sirupsen/logrus"
 	"github.com/oliveagle/jsonpath"
+	"github.com/robfig/cron"
 )
 
 type Action struct {
@@ -21,11 +22,21 @@ type Rule struct {
 	Condition           string
 	Actions             []Action
 	conditionExpression *govaluate.EvaluableExpression
+	cron                *cron.Cron
 }
 
 var rules = map[string]Rule{}
 
-func (c *agent) handleIncomingRule(ruleset string, rule string, value string) {
+func (c *agent) GetRule(ruleset string, rule string) *Rule {
+	r, exists := c.rules[rulesKey{ruleset, rule}]
+
+	if exists {
+		return &r
+	}
+	return nil
+}
+
+func (c *agent) AddRule(ruleset string, rule string, value string) {
 	log.Infof("Received rule '%s/%s'", ruleset, rule)
 
 	var r Rule
@@ -33,6 +44,18 @@ func (c *agent) handleIncomingRule(ruleset string, rule string, value string) {
 	if err != nil {
 		log.Errorf("Unable to parse JSON string: %v", err)
 		return
+	}
+
+	if len(r.Actions) == 0 {
+		log.Errorf("Rule does not contain any actions")
+		return
+	}
+
+	if len(r.Schedule) > 0 {
+		r.cron = cron.New()
+		r.cron.AddFunc(r.Schedule, func() {
+			c.ExecuteRule(ruleset, rule, "")
+		})
 	}
 
 	if len(r.Condition) > 0 {
@@ -45,14 +68,23 @@ func (c *agent) handleIncomingRule(ruleset string, rule string, value string) {
 
 	rk := rulesKey{ruleset, rule}
 
-	if c.rules != nil && len(c.rules[rk].Trigger) > 0 {
-		c.RemoveRuleSubscription(r.Trigger, ruleset, rule)
+	prevR, exists := c.rules[rk]
+	if exists {
+		if len(prevR.Trigger) > 0 {
+			c.RemoveRuleSubscription(r.Trigger, ruleset, rule)
+		}
+		if prevR.cron != nil {
+			prevR.cron.Stop()
+		}
 	}
 
 	c.rules[rk] = r
 
 	if len(r.Trigger) > 0 {
 		c.AddRuleSubscription(r.Trigger, ruleset, rule)
+	}
+	if r.cron != nil {
+		r.cron.Start()
 	}
 	log.Infof("Added rule %s: %+v\n", rule, r)
 

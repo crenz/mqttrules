@@ -31,12 +31,15 @@ type Agent interface {
 	GetPrefix() string
 
 	SetParameter(parameter string, value string)
-	GetParameterValue(parameter string) string
+	GetParameterValue(parameter string) interface{}
 	TriggerParameterUpdate(parameter string, value string)
 	ReplaceParamsInString(in string) string
 
 	AddParameterSubscription(topic string, parameter string)
 	RemoveParameterSubscription(topic string, parameter string)
+
+	AddRule(ruleset string, rule string, value string)
+	GetRule(ruleset string, rule string) *Rule
 	AddRuleSubscription(topic string, ruleset string, rule string)
 	RemoveRuleSubscription(topic string, ruleset string, rule string)
 
@@ -126,7 +129,7 @@ func (c *agent) Listen() {
 		c.handleIncomingParam(res[1], incoming[1])
 	}
 	if res := c.regexRule.FindStringSubmatch(incoming[0]); res != nil {
-		c.handleIncomingRule(res[1], res[2], incoming[1])
+		c.AddRule(res[1], res[2], incoming[1])
 	}
 }
 

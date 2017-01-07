@@ -6,12 +6,13 @@ import (
 	"regexp"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/davecgh/go-spew/spew"
 	"github.com/oliveagle/jsonpath"
 )
 
 // Parameter used in MQTT rules; can be updated from incoming MQTT messages
 type Parameter struct {
-	Value    string
+	Value    interface{}
 	Topic    string
 	JsonPath string
 }
@@ -25,6 +26,7 @@ func (c *agent) SetParameter(parameter string, value string) {
 
 	var p Parameter
 	err := json.Unmarshal([]byte(value), &p)
+	spew.Dump(p)
 	if err != nil {
 		c.parameters[parameter] = &Parameter{value, "", ""}
 		c.SetParameterValue(parameter, value)
@@ -75,13 +77,13 @@ func (c *agent) TriggerParameterUpdate(parameter string, value string) {
 
 }
 
-func (c *agent) GetParameterValue(parameter string) string {
-	v := c.parameterValues[parameter]
-	if v == nil {
+func (c *agent) GetParameterValue(parameter string) interface{} {
+	v, exists := c.parameterValues[parameter]
+	if !exists {
 		v = ""
 	}
 
-	return fmt.Sprintf("%v", v)
+	return v
 }
 
 func (c *agent) ReplaceParamsInString(in string) string {
@@ -95,7 +97,7 @@ func (c *agent) ReplaceParamsInString(in string) string {
 			return "$"
 		}
 
-		return c.GetParameterValue(i[1 : len(i)-1])
+		return c.GetParameterValue(i[1 : len(i)-1]).(string)
 	})
 	return out
 }
