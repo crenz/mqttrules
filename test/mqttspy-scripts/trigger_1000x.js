@@ -2,7 +2,7 @@
 function publish()
 {
         for (i = 1; i <= 1000; i++) {
-          mqttspy.publish("trigger1", "{\"value\": " + i + "}", 0, false);          
+          mqttspy.publish("trigger1", "{\"value\": " + i + "}", 1, false);
         }
         // This means all OK, script has completed without any issues and as expected
         return true;
