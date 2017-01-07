@@ -207,4 +207,22 @@ func TestAgent_ExecuteRule(t *testing.T) {
 		t.Errorf("Failed to execute rule correctly")
 		spew.Dump(m)
 	}
+
+	a.AddRule(ruleset, rule, `{"trigger": "test", "condition": "param > 41", "actions": [
+          {
+            "topic": "condition_test",
+            "payload": "${param}",
+            "qos": 1,
+            "retain": true
+          }
+	]}`)
+	a.ExecuteRule(ruleset, rule, "")
+	m = mqttClient.LastMessage()
+	if strings.Compare(m.Topic, "condition_test") != 0 ||
+		strings.Compare(m.Payload.(string), "42") != 0 ||
+		m.QoS != 1 || m.Retained != true {
+		t.Errorf("Failed to execute rule correctly")
+		spew.Dump(m)
+	}
+
 }

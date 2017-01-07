@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"regexp"
 
+	"github.com/Knetic/govaluate"
 	log "github.com/Sirupsen/logrus"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 )
@@ -34,6 +35,7 @@ type Agent interface {
 	GetParameterValue(parameter string) interface{}
 	TriggerParameterUpdate(parameter string, value string)
 	ReplaceParamsInString(in string) string
+	EvalExpressionsInString(in string, functions map[string]govaluate.ExpressionFunction) string
 
 	AddParameterSubscription(topic string, parameter string)
 	RemoveParameterSubscription(topic string, parameter string)

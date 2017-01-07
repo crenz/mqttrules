@@ -3,7 +3,7 @@
     "broker": "tcp://localhost:1883",
     "username": "",
     "password": "",
-    "receiveRulesViaMQTT": true
+    "allowRulesUpdate": true
   },
   "parameters": {
     "lights_kitchen_state": {
@@ -13,6 +13,19 @@
     }
   },
   "rules": {
+    "general": {
+      "alive": {
+        "schedule": "@every 1s"
+        "actions": [
+          {
+            "topic": "home/rules_alive"
+            "payload": ""
+            "qos": 1
+            "retain": false
+          }
+        ]
+      }
+    },
     "lights": {
       "kitchen-switch": {
         "trigger": "home/dash/status/On2",
