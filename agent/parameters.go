@@ -3,9 +3,7 @@ package agent
 import (
 	"encoding/json"
 	"fmt"
-	"regexp"
 
-	"github.com/Knetic/govaluate"
 	log "github.com/Sirupsen/logrus"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/oliveagle/jsonpath"
@@ -85,45 +83,6 @@ func (c *agent) GetParameterValue(parameter string) interface{} {
 	}
 
 	return v
-}
-
-func (c *agent) EvalExpressionsInString(in string, functions map[string]govaluate.ExpressionFunction) string {
-	r := regexp.MustCompile("[$][{].*[}]")
-	out := r.ReplaceAllStringFunc(in, func(i string) string {
-		// ReplaceAllStringFunc always receives the complete match, cannot receive
-		// submatches -> therefore, we chomp first two and last character off in this
-		// hackish way
-		e := i[2 : len(i)-1]
-		expression, err := govaluate.NewEvaluableExpressionWithFunctions(e, functions)
-		if err != nil {
-			log.Errorln("Error parsing expression:", err)
-			return ""
-		}
-		result, err := expression.Evaluate(c.parameterValues)
-		if err != nil {
-			log.Errorln("Error evaluating expression:", err)
-			return ""
-		}
-
-		return fmt.Sprintf("%v", result)
-	})
-	return out
-}
-
-func (c *agent) ReplaceParamsInString(in string) string {
-	r := regexp.MustCompile("[$].*[$]")
-	out := r.ReplaceAllStringFunc(in, func(i string) string {
-		// ReplaceAllStringFunc always receives the complete match, cannot receive
-		// submatches -> therefore, we chomp first and last character off in this
-		// hackish way
-		if len(i) == 2 {
-			// '$$' -> '$'
-			return "$"
-		}
-
-		return c.GetParameterValue(i[1 : len(i)-1]).(string)
-	})
-	return out
 }
 
 func (c *agent) AddParameterSubscription(topic string, parameter string) {

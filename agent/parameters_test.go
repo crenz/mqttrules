@@ -55,26 +55,6 @@ func TestSetParameter_JSON(t *testing.T) {
 	}
 }
 
-func TestReplaceParamsInString(t *testing.T) {
-	testClient := New(test.NewClient(), "")
-
-	testClient.SetParameter("test1", "value1")
-	for _, c := range []struct {
-		template, expected string
-	}{
-		{"", ""},
-		{"$$", "$"},
-		{"$test1$", "value1"},
-		{"testing$test1$123", "testingvalue1123"},
-		{"testing$test2$123", "testing123"},
-	} {
-		result := testClient.ReplaceParamsInString(c.template)
-		if result != c.expected {
-			t.Errorf("ReplaceParamsInString(%q); expected='%q', actual='%q'", c.template, c.expected, result)
-		}
-	}
-}
-
 func TestAddParameterSubscription(t *testing.T) {
 	testClient := New(test.NewClient(), "")
 

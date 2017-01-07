@@ -34,7 +34,6 @@ type Agent interface {
 	SetParameter(parameter string, value string)
 	GetParameterValue(parameter string) interface{}
 	TriggerParameterUpdate(parameter string, value string)
-	ReplaceParamsInString(in string) string
 	EvalExpressionsInString(in string, functions map[string]govaluate.ExpressionFunction) string
 
 	AddParameterSubscription(topic string, parameter string)
