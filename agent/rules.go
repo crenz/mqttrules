@@ -1,4 +1,4 @@
-package mqttrules
+package agent
 
 import (
 	"encoding/json"
@@ -25,7 +25,7 @@ type Rule struct {
 
 var rules = map[string]Rule{}
 
-func (c *client) handleIncomingRule(ruleset string, rule string, value string) {
+func (c *agent) handleIncomingRule(ruleset string, rule string, value string) {
 	log.Infof("Received rule '%s/%s'", ruleset, rule)
 
 	var r Rule
@@ -62,7 +62,7 @@ func (c *client) handleIncomingRule(ruleset string, rule string, value string) {
 
 /* public functions */
 
-func (c *client) AddRuleSubscription(topic string, ruleset string, rule string) {
+func (c *agent) AddRuleSubscription(topic string, ruleset string, rule string) {
 	if !c.ensureSubscription(topic) {
 		return
 	}
@@ -70,7 +70,7 @@ func (c *client) AddRuleSubscription(topic string, ruleset string, rule string) 
 	c.subscriptions[topic].rules[rulesKey{ruleset, rule}] = true
 }
 
-func (c *client) RemoveRuleSubscription(topic string, ruleset string, rule string) {
+func (c *agent) RemoveRuleSubscription(topic string, ruleset string, rule string) {
 	_, exists := c.subscriptions[topic]
 	if c.mqttClient == nil || !exists {
 		return
@@ -80,7 +80,7 @@ func (c *client) RemoveRuleSubscription(topic string, ruleset string, rule strin
 	c.contemplateUnsubscription(topic)
 }
 
-func (c *client) ExecuteRule(ruleset string, rule string, triggerPayload string) {
+func (c *agent) ExecuteRule(ruleset string, rule string, triggerPayload string) {
 	log.Infof("Executing rule %s/%s", ruleset, rule)
 
 	r := c.rules[rulesKey{ruleset, rule}]

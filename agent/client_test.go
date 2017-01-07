@@ -1,4 +1,4 @@
-package mqttrules
+package agent
 
 import (
 	"fmt"
@@ -6,13 +6,13 @@ import (
 
 	"strings"
 
-	"github.com/crenz/mqttrules/testmqttrules"
+	"github.com/crenz/mqttrules/test"
 	"github.com/davecgh/go-spew/spew"
 )
 
 func TestClient_ConnectSubscribeDisconnect(t *testing.T) {
-	mqttClient := testmqttrules.NewClient()
-	testClient := NewClient(mqttClient, "")
+	mqttClient := test.NewClient()
+	testClient := New(mqttClient, "")
 
 	if !testClient.Connect() {
 		t.Error("Failed to connect")
@@ -25,8 +25,8 @@ func TestClient_ConnectSubscribeDisconnect(t *testing.T) {
 }
 
 func TestClient_Publish(t *testing.T) {
-	mqttClient := testmqttrules.NewClient()
-	testClient := NewClient(mqttClient, "")
+	mqttClient := test.NewClient()
+	testClient := New(mqttClient, "")
 
 	for _, c := range []struct {
 		topic    string
@@ -48,7 +48,7 @@ func TestClient_Publish(t *testing.T) {
 
 func TestSendParam(t *testing.T) {
 	// Don't use NewClient to enable access to private field messages
-	testClient := &client{}
+	testClient := &agent{}
 	testClient.initialize()
 	testClient.SetPrefix("mr/")
 

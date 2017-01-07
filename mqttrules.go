@@ -4,7 +4,7 @@ import (
 	"flag"
 
 	log "github.com/Sirupsen/logrus"
-	mqttrules "github.com/crenz/mqttrules"
+	"github.com/crenz/mqttrules/agent"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/mattn/go-colorable"
 )
@@ -29,14 +29,13 @@ func main() {
 	opts.SetPassword(*pPassword)
 	mqttClient := NewPahoClient(opts)
 
-	c := mqttrules.NewClient(mqttClient, "")
+	a := agent.New(mqttClient, "")
 
-	if c.Connect() {
-		c.Subscribe()
-		mqttClient.Publish("testing", 2, false, "")
+	if a.Connect() {
+		a.Subscribe()
 
 		for {
-			c.Listen()
+			a.Listen()
 		}
 		// will never be reached: c.Disconnect()
 	}

@@ -1,4 +1,4 @@
-package mqttrules
+package agent
 
 import (
 	"fmt"
@@ -21,8 +21,8 @@ type MqttClient interface {
 	Unsubscribe(topics ...string) bool
 }
 
-// MQTT Rules Client
-type Client interface {
+// MQTT Rules agent
+type Agent interface {
 	Connect() bool
 	Subscribe() bool
 	Listen()
@@ -59,7 +59,7 @@ type subscriptions struct {
 
 type subscriptionsMap map[string]subscriptions
 
-type client struct {
+type agent struct {
 	mqttClient MqttClient
 	messages   chan [2]string
 	prefix     string
@@ -74,7 +74,7 @@ type client struct {
 	messagehandler mqtt.MessageHandler
 }
 
-func (c *client) initialize() {
+func (c *agent) initialize() {
 	c.SetPrefix("")
 	c.parameters = make(parameterMap)
 	c.parameterValues = make(map[string]interface{})
@@ -87,8 +87,8 @@ func (c *client) initialize() {
 }
 
 // Creates and initializes a new MQTT rules client
-func NewClient(mqttClient MqttClient, prefix string) Client {
-	c := &client{}
+func New(mqttClient MqttClient, prefix string) Agent {
+	c := &agent{}
 	c.initialize()
 	c.mqttClient = mqttClient
 	c.prefix = prefix
@@ -96,24 +96,24 @@ func NewClient(mqttClient MqttClient, prefix string) Client {
 	return c
 }
 
-func (c *client) Connect() bool {
+func (c *agent) Connect() bool {
 	log.Infoln("Connecting to MQTT broker")
 
 	return c.mqttClient.Connect()
 }
 
-func (c *client) Subscribe() bool {
+func (c *agent) Subscribe() bool {
 	return c.mqttClient.Subscribe("#", byte(1), c.messagehandler)
 }
 
-func (c *client) Publish(topic string, qos byte, retained bool, payload string) {
+func (c *agent) Publish(topic string, qos byte, retained bool, payload string) {
 
 	if success := c.mqttClient.Publish(topic, qos, retained, payload); !success {
 		log.Errorf("Error publishing MQTT topic [%s]", topic)
 	}
 }
 
-func (c *client) Listen() {
+func (c *agent) Listen() {
 	incoming := <-c.messages
 	//log.Infof("Received [%s] %s\n", incoming[0], incoming[1])
 
@@ -130,7 +130,7 @@ func (c *client) Listen() {
 	}
 }
 
-func (c *client) handleIncomingTrigger(topic string, payload string) {
+func (c *agent) handleIncomingTrigger(topic string, payload string) {
 	for key := range c.subscriptions[topic].parameters {
 		c.TriggerParameterUpdate(key, payload)
 	}
@@ -139,7 +139,7 @@ func (c *client) handleIncomingTrigger(topic string, payload string) {
 	}
 }
 
-func (c *client) ensureSubscription(topic string) bool {
+func (c *agent) ensureSubscription(topic string) bool {
 	if c.mqttClient == nil || len(topic) == 0 {
 		return false
 	}
@@ -157,7 +157,7 @@ func (c *client) ensureSubscription(topic string) bool {
 	return true
 }
 
-func (c *client) contemplateUnsubscription(topic string) bool {
+func (c *agent) contemplateUnsubscription(topic string) bool {
 	if c.mqttClient == nil {
 		return false
 	}
@@ -173,27 +173,27 @@ func (c *client) contemplateUnsubscription(topic string) bool {
 	return true
 }
 
-func (c *client) handleIncomingParam(param string, value string) {
+func (c *agent) handleIncomingParam(param string, value string) {
 	c.SetParameter(param, value)
 }
 
-func (c *client) Disconnect() {
+func (c *agent) Disconnect() {
 	log.Infoln("Disconnecting from MQTT broker")
 	c.mqttClient.Disconnect()
 }
 
-func (c *client) SetPrefix(prefix string) {
+func (c *agent) SetPrefix(prefix string) {
 	c.prefix = prefix
 
 	c.regexParam = regexp.MustCompile(fmt.Sprintf("^%sparam/([^/]+)", c.prefix))
 	c.regexRule = regexp.MustCompile(fmt.Sprintf("^%srule/([^/]+)/([^/]+)", c.prefix))
 }
 
-func (c *client) GetPrefix() string {
+func (c *agent) GetPrefix() string {
 	return c.prefix
 }
 
-func (c *client) IsSubscribed(topic string) bool {
+func (c *agent) IsSubscribed(topic string) bool {
 	_, exists := c.subscriptions[topic]
 	return exists
 }

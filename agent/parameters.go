@@ -1,4 +1,4 @@
-package mqttrules
+package agent
 
 import (
 	"encoding/json"
@@ -18,7 +18,7 @@ type Parameter struct {
 
 type parameterMap map[string]*Parameter
 
-func (c *client) SetParameter(parameter string, value string) {
+func (c *agent) SetParameter(parameter string, value string) {
 	if len(parameter) == 0 {
 		return
 	}
@@ -43,11 +43,11 @@ func (c *client) SetParameter(parameter string, value string) {
 
 }
 
-func (c *client) SetParameterValue(parameter string, value interface{}) {
+func (c *agent) SetParameterValue(parameter string, value interface{}) {
 	c.parameterValues[parameter] = value
 }
 
-func (c *client) TriggerParameterUpdate(parameter string, value string) {
+func (c *agent) TriggerParameterUpdate(parameter string, value string) {
 	p, exists := c.parameters[parameter]
 	if !exists {
 		return
@@ -75,7 +75,7 @@ func (c *client) TriggerParameterUpdate(parameter string, value string) {
 
 }
 
-func (c *client) GetParameterValue(parameter string) string {
+func (c *agent) GetParameterValue(parameter string) string {
 	v := c.parameterValues[parameter]
 	if v == nil {
 		v = ""
@@ -84,7 +84,7 @@ func (c *client) GetParameterValue(parameter string) string {
 	return fmt.Sprintf("%v", v)
 }
 
-func (c *client) ReplaceParamsInString(in string) string {
+func (c *agent) ReplaceParamsInString(in string) string {
 	r := regexp.MustCompile("[$].*[$]")
 	out := r.ReplaceAllStringFunc(in, func(i string) string {
 		// ReplaceAllStringFunc always receives the complete match, cannot receive
@@ -100,7 +100,7 @@ func (c *client) ReplaceParamsInString(in string) string {
 	return out
 }
 
-func (c *client) AddParameterSubscription(topic string, parameter string) {
+func (c *agent) AddParameterSubscription(topic string, parameter string) {
 	if !c.ensureSubscription(topic) {
 		return
 	}
@@ -108,7 +108,7 @@ func (c *client) AddParameterSubscription(topic string, parameter string) {
 	c.subscriptions[topic].parameters[parameter] = true
 }
 
-func (c *client) RemoveParameterSubscription(topic string, parameter string) {
+func (c *agent) RemoveParameterSubscription(topic string, parameter string) {
 	_, exists := c.subscriptions[topic]
 	if c.mqttClient == nil || !exists {
 		return

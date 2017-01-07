@@ -1,14 +1,14 @@
-package mqttrules
+package agent
 
 import (
 	"strings"
 	"testing"
 
-	"github.com/crenz/mqttrules/testmqttrules"
+	"github.com/crenz/mqttrules/test"
 )
 
 func TestSetParameter(t *testing.T) {
-	testClient := NewClient(testmqttrules.NewClient(), "")
+	testClient := New(test.NewClient(), "")
 
 	for _, c := range []struct {
 		key, value string
@@ -26,7 +26,7 @@ func TestSetParameter(t *testing.T) {
 }
 
 func TestSetParameter_JSON(t *testing.T) {
-	testClient := NewClient(testmqttrules.NewClient(), "")
+	testClient := New(test.NewClient(), "")
 
 	key := "JSONTest"
 
@@ -47,7 +47,7 @@ func TestSetParameter_JSON(t *testing.T) {
 }
 
 func TestReplaceParamsInString(t *testing.T) {
-	testClient := NewClient(testmqttrules.NewClient(), "")
+	testClient := New(test.NewClient(), "")
 
 	testClient.SetParameter("test1", "value1")
 	for _, c := range []struct {
@@ -67,7 +67,7 @@ func TestReplaceParamsInString(t *testing.T) {
 }
 
 func TestAddParameterSubscription(t *testing.T) {
-	testClient := NewClient(testmqttrules.NewClient(), "")
+	testClient := New(test.NewClient(), "")
 
 	for _, c := range []struct {
 		topic  string
@@ -85,7 +85,7 @@ func TestAddParameterSubscription(t *testing.T) {
 }
 
 func TestRemoveParameterSubscription(t *testing.T) {
-	testClient := NewClient(testmqttrules.NewClient(), "")
+	testClient := New(test.NewClient(), "")
 
 	topic := "topic"
 	param := "param"

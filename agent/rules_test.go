@@ -1,13 +1,13 @@
-package mqttrules
+package agent
 
 import (
 	"testing"
 
-	"github.com/crenz/mqttrules/testmqttrules"
+	"github.com/crenz/mqttrules/test"
 )
 
 func TestAddRuleSubscription(t *testing.T) {
-	testClient := NewClient(testmqttrules.NewClient(), "")
+	testClient := New(test.NewClient(), "")
 
 	for _, c := range []struct {
 		topic  string
@@ -25,8 +25,8 @@ func TestAddRuleSubscription(t *testing.T) {
 }
 
 func TestRemoveRuleSubscription(t *testing.T) {
-	mqttClient := testmqttrules.NewClient()
-	testClient := NewClient(mqttClient, "")
+	mqttClient := test.NewClient()
+	testClient := New(mqttClient, "")
 
 	topic := "topic"
 	ruleset := "ruleset"

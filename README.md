@@ -1,6 +1,7 @@
 [![Build Status](https://travis-ci.org/crenz/mqttrules.svg?branch=master)](https://travis-ci.org/crenz/mqttrules)
 [![Go Report Card](https://goreportcard.com/badge/github.com/crenz/mqttrules)](https://goreportcard.com/report/github.com/crenz/mqttrules)
 [![Coverage Status](https://coveralls.io/repos/github/crenz/mqttrules/badge.svg?branch=master)](https://coveralls.io/github/crenz/mqttrules?branch=master)
+[![GoDoc](https://godoc.org/github.com/crenz/mqttrules?status.svg)](https://godoc.org/github.com/crenz/mqttrules)
 
 # mqttrules
 
