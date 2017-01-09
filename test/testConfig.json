@@ -1,15 +1,22 @@
 {
   "config": {
-    "broker": "tcp://localhost:1883",
+    "broker": "tcp://test.mosquitto.org:1883",
+    "clientID": "mqttrules"
     "username": "",
     "password": "",
     "allowRulesUpdate": true
+    "prefix": "mqttrules"
   },
   "parameters": {
+    "alive_counter": {
+      "value": "{ \"value\": 0 }"
+      "topic": "home/mqttrules/alive"
+      "expression": "payload(\"$.value\")"
+    }
     "lights_kitchen_state": {
       "value": "",
-      "topic": "hue/status/lights/Kitchen light",
-      "JSONPath": "$.on"
+      "topic": "home/lights/kitchen/status",
+      "expression": "payload(\"$.on\")"
     }
   },
   "rules": {
@@ -18,8 +25,8 @@
         "schedule": "@every 1s"
         "actions": [
           {
-            "topic": "home/rules_alive"
-            "payload": ""
+            "topic": "home/mqttrules/alive"
+            "payload": "I'm still alive!"
             "qos": 1
             "retain": false
           }
@@ -28,11 +35,11 @@
     },
     "lights": {
       "kitchen-switch": {
-        "trigger": "home/dash/status/On2",
+        "trigger": "home/buttons/kitchen/status",
         "condition": "payload() > 0",
         "actions": [
           {
-            "topic": "hue/set/lights/Kitchen light",
+            "topic": "home/lights/kitchen/set",
             "payload": "{ \"on\" : ${!lights_kitchen_state}}",
             "qos": 2,
             "retain": false

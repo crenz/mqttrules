@@ -1,8 +1,6 @@
 package test
 
-import (
-	"github.com/eclipse/paho.mqtt.golang"
-)
+type MockMessageHandler func(topic string, payload string)
 
 // Mock MQTT Client. Defined to avoid import cycle
 type MockMqttClient interface {
@@ -10,7 +8,7 @@ type MockMqttClient interface {
 	Connect() bool
 	Disconnect()
 	Publish(topic string, qos byte, retained bool, payload interface{}) bool
-	Subscribe(topic string, qos byte, callback mqtt.MessageHandler) bool
+	Subscribe(topic string, qos byte, callback func(string, string)) bool
 	Unsubscribe(topics ...string) bool
 	IsSubscribed(topic string) bool
 	LastMessage() MockMqttMessage
@@ -27,6 +25,7 @@ type mockMqttClient struct {
 	connected     bool
 	subscriptions map[string]bool
 	lastMessage   MockMqttMessage
+	callback      MockMessageHandler
 }
 
 func NewClient() MockMqttClient {
@@ -58,11 +57,16 @@ func (c *mockMqttClient) Publish(topic string, qos byte, retained bool, payload 
 		Retained: retained,
 		Payload:  payload,
 	}
+
+	if c.callback != nil {
+		go c.callback(topic, payload.(string))
+	}
 	return true
 }
 
-func (c *mockMqttClient) Subscribe(topic string, qos byte, callback mqtt.MessageHandler) bool {
+func (c *mockMqttClient) Subscribe(topic string, qos byte, callback func(string, string)) bool {
 	c.subscriptions[topic] = true
+	c.callback = callback
 	return true
 }
 

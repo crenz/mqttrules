@@ -16,8 +16,8 @@ func init() {
 
 func main() {
 	pBroker := flag.String("broker", "tcp://localhost:1883", "MQTT broker URI (e.g. tcp://localhost:1883)")
+	pPassword := flag.String("config", "", "(optional) configuration file")
 	pUsername := flag.String("username", "", "(optional) user name for MQTT broker access")
-	pPassword := flag.String("password", "", "(optional) password for MQTT broker access")
 
 	flag.Parse()
 
@@ -46,7 +46,7 @@ type PahoClient interface {
 	Connect() bool
 	Disconnect()
 	Publish(topic string, qos byte, retained bool, payload interface{}) bool
-	Subscribe(topic string, qos byte, callback mqtt.MessageHandler) bool
+	Subscribe(topic string, qos byte, callback func(string, string)) bool
 	Unsubscribe(topics ...string) bool
 }
 
@@ -84,8 +84,12 @@ func (c *pahoClient) Publish(topic string, qos byte, retained bool, payload inte
 	return true
 }
 
-func (c *pahoClient) Subscribe(topic string, qos byte, callback mqtt.MessageHandler) bool {
-	if token := c.c.Subscribe(topic, qos, callback); token.Wait() && token.Error() != nil {
+func (c *pahoClient) Subscribe(topic string, qos byte, callback func(string, string)) bool {
+	pahoCallback := func(c mqtt.Client, m mqtt.Message) {
+		callback(m.Topic(), string(m.Payload()))
+	}
+
+	if token := c.c.Subscribe(topic, qos, pahoCallback); token.Wait() && token.Error() != nil {
 		log.Errorf("[PahoClient] Error subscribing to topic [%s]: %v", topic, token.Error())
 		return false
 	}

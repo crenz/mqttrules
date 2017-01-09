@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/crenz/mqttrules/test"
+	"github.com/davecgh/go-spew/spew"
 )
 
 func TestSetParameter(t *testing.T) {
@@ -37,7 +38,7 @@ func TestSetParameter_JSON(t *testing.T) {
 	testClient.SetParameter(key, `{
     "value": 42.2,
     "topic": "lighting/livingroom/status",
-    "jsonPath": "$.value"
+    "expression": "payload(\"$.value\")"
 }`)
 	resultFloat := testClient.GetParameterValue(key).(float64)
 	if resultFloat != 42.2 {
@@ -47,7 +48,7 @@ func TestSetParameter_JSON(t *testing.T) {
 	testClient.SetParameter(key, `{
     "value": 42,
     "topic": "lighting/livingroom/status",
-    "jsonPath": "$.value"
+    "expression": "payload(\"$.value\")"
 }`)
 	resultFloat = testClient.GetParameterValue(key).(float64)
 	if resultFloat != 42 {
@@ -55,6 +56,29 @@ func TestSetParameter_JSON(t *testing.T) {
 	}
 }
 
+func TestSetParameter_Expression(t *testing.T) {
+	mqttClient := test.NewClient()
+	a := New(mqttClient, "")
+
+	key := "ExpressionTest"
+
+	result := a.GetParameterValue(key).(string)
+	if len(result) != 0 {
+		t.Errorf("GetParameter(%q) == %q, want empty string", key, result)
+	}
+
+	a.SetParameter(key, `{
+    "topic": "lighting/livingroom/status",
+    "expression": "payload(\"$.value\") + 2"
+}`)
+	mqttClient.Publish("lighting/livingroom/status", 1, false, `{"value": 42}`)
+	a.Listen()
+	result2 := a.GetParameterValue(key)
+	spew.Dump(result)
+	if result2.(float64) != 44 {
+		t.Errorf("GetParameterValue(%q) == %v, want %v", key, result, 44)
+	}
+}
 func TestAddParameterSubscription(t *testing.T) {
 	testClient := New(test.NewClient(), "")
 

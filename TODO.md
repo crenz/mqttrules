@@ -7,6 +7,7 @@
 - Update spec to reflect changes in functionality
 - Increase code coverage
 - Concurrency protection for maps: https://blog.golang.org/go-maps-in-action
+- Refactor agent callback/Listen stuff.
 
 ## Functionality
 

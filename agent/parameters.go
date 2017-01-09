@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/Knetic/govaluate"
 	log "github.com/Sirupsen/logrus"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/oliveagle/jsonpath"
@@ -11,9 +12,9 @@ import (
 
 // Parameter used in MQTT rules; can be updated from incoming MQTT messages
 type Parameter struct {
-	Value    interface{}
-	Topic    string
-	JsonPath string
+	Value      interface{}
+	Topic      string
+	Expression string
 }
 
 type parameterMap map[string]*Parameter
@@ -49,28 +50,52 @@ func (c *agent) SetParameterValue(parameter string, value interface{}) {
 }
 
 func (c *agent) TriggerParameterUpdate(parameter string, value string) {
+	fPayload := func(args ...interface{}) (interface{}, error) {
+		if len(args) == 0 {
+			// No JSON path given - return whole payload
+			return value, nil
+		}
+		var jsonData interface{}
+		err := json.Unmarshal([]byte(value), &jsonData)
+		if err != nil {
+			log.Errorf("JSON parsing error in trigger payload when updating parameter %s: %v", parameter, err)
+			return value, err
+		}
+		res, err := jsonpath.JsonPathLookup(jsonData, args[0].(string))
+		if err != nil {
+			log.Errorf("JSON lookup error in trigger payload when updating parameter %s: %v", parameter, err)
+			return value, err
+		}
+
+		return res, nil
+	}
+
+	functions := map[string]govaluate.ExpressionFunction{
+		"payload": fPayload,
+	}
+
 	p, exists := c.parameters[parameter]
 	if !exists {
 		return
 	}
 
-	if len(p.JsonPath) == 0 {
+	if len(p.Expression) == 0 {
 		// directly set value
 		c.parameters[parameter].Value = value
 		log.Infof("Updated parameter %s to non-JSON value %s", parameter, fmt.Sprintf("%+v\n", p))
 	} else {
-		var jsonData interface{}
-		err := json.Unmarshal([]byte(value), &jsonData)
+		expression, err := govaluate.NewEvaluableExpressionWithFunctions(p.Expression, functions)
 		if err != nil {
-			log.Errorf("JSON parsing error when updating parameter %s: %v", parameter, err)
+			log.Errorln("Error parsing condition:", err)
 			return
 		}
-		res, err := jsonpath.JsonPathLookup(jsonData, p.JsonPath)
+		result, err := expression.Evaluate(c.parameterValues)
 		if err != nil {
-			log.Errorf("JSON error when updating parameter %s: %v", parameter, err)
+			log.Errorln("Error evaluating condition:", err)
 			return
 		}
-		c.SetParameterValue(parameter, res)
+
+		c.SetParameterValue(parameter, result)
 		log.Infof("Updated parameter %s to value %s", parameter, c.parameters[parameter].Value)
 	}
 

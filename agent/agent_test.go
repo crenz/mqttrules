@@ -50,7 +50,7 @@ func TestSendParam(t *testing.T) {
 	// Don't use NewClient to enable access to private field messages
 	testClient := &agent{}
 	testClient.initialize()
-	testClient.SetPrefix("mr/")
+	testClient.setPrefix("mr/")
 
 	testClient.messages = make(chan [2]string)
 
