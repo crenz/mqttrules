@@ -11,10 +11,18 @@ go:
   - 1.7
   - tip
 
+env:
+ - BUILD_DOCKER_IMAGES=0
+ - BUILD_DOCKER_IMAGES=1
+
 matrix:
-  include:
-  - go: 1.7
-    env: BUILD_DOCKER=1
+  exclude:
+  - go: 1.5
+    env: BUILD_DOCKER_IMAGES=1
+  - go: 1.6
+    env: BUILD_DOCKER_IMAGES=1
+  - go: tip
+    env: BUILD_DOCKER_IMAGES=1
 
 install:
   - go get github.com/gordonklaus/ineffassign
@@ -30,7 +38,7 @@ script:
   - $HOME/gopath/bin/goveralls -coverprofile=profile.cov -service=travis-ci
 
 after_success:
-  - if [ "$TRAVIS_BRANCH" == "master" ] && [ "$BUILD_DOCKER" ]; then
+  - if [ "$TRAVIS_BRANCH" == "master" ] && [ "BUILD_DOCKER_IMAGES" ]; then
     docker login -u="$DOCKER_USER" -p="$DOCKER_PASS";
     docker push crenz/mqttrules;
     fi
