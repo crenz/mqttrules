@@ -17,7 +17,7 @@ func TestSetParameter(t *testing.T) {
 		{"/rules/TTL", ""},
 		{"", ""},
 	} {
-		testClient.SetParameter(c.key, c.value)
+		testClient.SetParameterFromString(c.key, c.value)
 		result := testClient.GetParameterValue(c.key)
 		if result != c.value {
 			t.Errorf("GetParameter(%q) == %q, want %q", c.key, result, c.value)
@@ -35,7 +35,7 @@ func TestSetParameter_JSON(t *testing.T) {
 		t.Errorf("GetParameter(%q) == %q, want empty string", key, result)
 	}
 
-	testClient.SetParameter(key, `{
+	testClient.SetParameterFromString(key, `{
     "value": 42.2,
     "topic": "lighting/livingroom/status",
     "expression": "payload(\"$.value\")"
@@ -45,7 +45,7 @@ func TestSetParameter_JSON(t *testing.T) {
 		t.Errorf("GetParameterValue(%q) == %v, want %v", key, result, 42.2)
 	}
 
-	testClient.SetParameter(key, `{
+	testClient.SetParameterFromString(key, `{
     "value": 42,
     "topic": "lighting/livingroom/status",
     "expression": "payload(\"$.value\")"
@@ -67,7 +67,7 @@ func TestSetParameter_Expression(t *testing.T) {
 		t.Errorf("GetParameter(%q) == %q, want empty string", key, result)
 	}
 
-	a.SetParameter(key, `{
+	a.SetParameterFromString(key, `{
     "topic": "lighting/livingroom/status",
     "expression": "payload(\"$.value\") + 2"
 }`)

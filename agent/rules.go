@@ -30,8 +30,8 @@ type Rule struct {
 
 var rules = map[string]Rule{}
 
-func (c *agent) GetRule(ruleset string, rule string) *Rule {
-	r, exists := c.rules[rulesKey{ruleset, rule}]
+func (a *agent) GetRule(ruleset string, rule string) *Rule {
+	r, exists := a.rules[rulesKey{ruleset, rule}]
 
 	if exists {
 		return &r
@@ -39,30 +39,40 @@ func (c *agent) GetRule(ruleset string, rule string) *Rule {
 	return nil
 }
 
-func (c *agent) AddRule(ruleset string, rule string, value string) {
-	log.Infof("Received rule '%s/%s'", ruleset, rule)
+func (a *agent) AddRuleFromString(ruleset string, rule string, value string) {
+	log.Debugf("Received rule '%s/%s'", ruleset, rule)
 
 	var r Rule
 	err := json.Unmarshal([]byte(value), &r)
 	if err != nil {
-		log.Errorf("Unable to parse JSON string: %v", err)
+		log.Errorf("[Rule] Unable to parse JSON string: %v", err)
 		return
 	}
 
+	a.AddRule(ruleset, rule, r)
+}
+
+func (a *agent) AddRule(ruleset string, rule string, r Rule) {
+	var err error
+
+	functions := map[string]govaluate.ExpressionFunction{
+		"payload": func(args ...interface{}) (interface{}, error) { return nil, nil },
+	}
+
 	if len(r.Actions) == 0 {
-		log.Errorf("Rule does not contain any actions")
+		log.Errorf("Failed to add Rule that does not contain any actions")
 		return
 	}
 
 	if len(r.Schedule) > 0 {
 		r.cron = cron.New()
 		r.cron.AddFunc(r.Schedule, func() {
-			c.ExecuteRule(ruleset, rule, "")
+			a.ExecuteRule(ruleset, rule, "")
 		})
 	}
 
 	if len(r.Condition) > 0 {
-		r.conditionExpression, err = govaluate.NewEvaluableExpression(r.Condition)
+		r.conditionExpression, err = govaluate.NewEvaluableExpressionWithFunctions(r.Condition, functions)
 		if err != nil {
 			log.Errorf("Error parsing rule condition: %v", err)
 			return
@@ -71,25 +81,25 @@ func (c *agent) AddRule(ruleset string, rule string, value string) {
 
 	rk := rulesKey{ruleset, rule}
 
-	prevR, exists := c.rules[rk]
+	prevR, exists := a.rules[rk]
 	if exists {
 		if len(prevR.Trigger) > 0 {
-			c.RemoveRuleSubscription(r.Trigger, ruleset, rule)
+			a.RemoveRuleSubscription(r.Trigger, ruleset, rule)
 		}
 		if prevR.cron != nil {
 			prevR.cron.Stop()
 		}
 	}
 
-	c.rules[rk] = r
+	a.rules[rk] = r
 
 	if len(r.Trigger) > 0 {
-		c.AddRuleSubscription(r.Trigger, ruleset, rule)
+		a.AddRuleSubscription(r.Trigger, ruleset, rule)
 	}
 	if r.cron != nil {
 		r.cron.Start()
 	}
-	log.Infof("Added rule %s: %+v\n", rule, r)
+	log.Debugf("Added rule %s: %+v\n", rule, r)
 
 	//TODO
 
@@ -97,26 +107,26 @@ func (c *agent) AddRule(ruleset string, rule string, value string) {
 
 /* public functions */
 
-func (c *agent) AddRuleSubscription(topic string, ruleset string, rule string) {
-	if !c.ensureSubscription(topic) {
+func (a *agent) AddRuleSubscription(topic string, ruleset string, rule string) {
+	if !a.ensureSubscription(topic) {
 		return
 	}
 
-	c.subscriptions[topic].rules[rulesKey{ruleset, rule}] = true
+	a.subscriptions[topic].rules[rulesKey{ruleset, rule}] = true
 }
 
-func (c *agent) RemoveRuleSubscription(topic string, ruleset string, rule string) {
-	_, exists := c.subscriptions[topic]
-	if c.mqttClient == nil || !exists {
+func (a *agent) RemoveRuleSubscription(topic string, ruleset string, rule string) {
+	_, exists := a.subscriptions[topic]
+	if a.mqttClient == nil || !exists {
 		return
 	}
 
-	delete(c.subscriptions[topic].rules, rulesKey{ruleset, rule})
-	c.contemplateUnsubscription(topic)
+	delete(a.subscriptions[topic].rules, rulesKey{ruleset, rule})
+	a.contemplateUnsubscription(topic)
 }
 
-func (c *agent) ExecuteRule(ruleset string, rule string, triggerPayload string) {
-	log.Infof("Executing rule %s/%s", ruleset, rule)
+func (a *agent) ExecuteRule(ruleset string, rule string, triggerPayload string) {
+	log.Debugf("Executing rule %s/%s", ruleset, rule)
 	fPayload := func(args ...interface{}) (interface{}, error) {
 		if len(args) == 0 {
 			// No JSON path given - return whole payload
@@ -141,14 +151,14 @@ func (c *agent) ExecuteRule(ruleset string, rule string, triggerPayload string) 
 		"payload": fPayload,
 	}
 
-	r := c.rules[rulesKey{ruleset, rule}]
+	r := a.rules[rulesKey{ruleset, rule}]
 	if len(r.Condition) > 0 {
 		expression, err := govaluate.NewEvaluableExpressionWithFunctions(r.Condition, functions)
 		if err != nil {
 			log.Errorln("Error parsing condition:", err)
 			return
 		}
-		result, err := expression.Evaluate(c.parameterValues)
+		result, err := expression.Evaluate(a.parameterValues)
 		if err != nil {
 			log.Errorln("Error evaluating condition:", err)
 			return
@@ -159,13 +169,13 @@ func (c *agent) ExecuteRule(ruleset string, rule string, triggerPayload string) 
 		}
 	}
 	for _, r := range r.Actions {
-		s := c.EvalExpressionsInString(r.Payload, functions)
-		c.Publish(r.Topic, r.QoS, r.Retain, s)
+		s := a.EvalExpressionsInString(r.Payload, functions)
+		a.Publish(r.Topic, r.QoS, r.Retain, s)
 	}
 }
 
-func (c *agent) EvalExpressionsInString(in string, functions map[string]govaluate.ExpressionFunction) string {
-	r := regexp.MustCompile("[$][{].*[}]")
+func (a *agent) EvalExpressionsInString(in string, functions map[string]govaluate.ExpressionFunction) string {
+	r := regexp.MustCompile("[$][{].*?[}]")
 	out := r.ReplaceAllStringFunc(in, func(i string) string {
 		// ReplaceAllStringFunc always receives the complete match, cannot receive
 		// submatches -> therefore, we chomp first two and last character off in this
@@ -174,9 +184,10 @@ func (c *agent) EvalExpressionsInString(in string, functions map[string]govaluat
 		expression, err := govaluate.NewEvaluableExpressionWithFunctions(e, functions)
 		if err != nil {
 			log.Errorln("Error parsing expression:", err)
+			log.Errorln("String: ", in, "; Expression:", e, "; i: ", i)
 			return ""
 		}
-		result, err := expression.Evaluate(c.parameterValues)
+		result, err := expression.Evaluate(a.parameterValues)
 		if err != nil {
 			log.Errorln("Error evaluating expression:", err)
 			return ""

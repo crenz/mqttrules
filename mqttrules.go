@@ -16,22 +16,56 @@ func init() {
 
 func main() {
 	pBroker := flag.String("broker", "tcp://localhost:1883", "MQTT broker URI (e.g. tcp://localhost:1883)")
-	pPassword := flag.String("config", "", "(optional) configuration file")
+	pConfigFile := flag.String("config", "", "(optional) configuration file")
 	pUsername := flag.String("username", "", "(optional) user name for MQTT broker access")
+	pPassword := flag.String("password", "", "(optional) password for MQTT broker access")
 
 	flag.Parse()
 
-	log.Infoln("mqtt-rules connecting to broker", *pBroker)
-	opts := mqtt.NewClientOptions()
-	opts.SetClientID("mqtt-rules/0.1")
-	opts.AddBroker(*pBroker)
-	opts.SetUsername(*pUsername)
-	opts.SetPassword(*pPassword)
-	mqttClient := NewPahoClient(opts)
+	var c *agent.ConfigFile
+	var err error
+	if len(*pConfigFile) > 0 {
+		c, err = agent.ConfigFromFile(*pConfigFile)
+		if err != nil {
+			log.Errorf("Error reading config file %s: %v", *pConfigFile, err)
+			return
+		}
+	} else {
+		c = &agent.ConfigFile{}
+	}
 
-	a := agent.New(mqttClient, "")
+	// Arguments given via command line have precedence
+	if len(*pBroker) > 0 {
+		c.Config.Broker = *pBroker
+	}
+	if len(*pUsername) > 0 {
+		c.Config.Username = *pUsername
+	}
+	if len(*pPassword) > 0 {
+		c.Config.Username = *pPassword
+	}
+
+	log.Infoln("mqtt-rules connecting to broker", c.Config.Broker)
+	opts := mqtt.NewClientOptions()
+	opts.SetClientID(c.Config.ClientID)
+	opts.AddBroker(c.Config.Broker)
+	opts.SetUsername(c.Config.Username)
+	opts.SetPassword(c.Config.Password)
+	mqttClient := agent.NewPahoClient(opts)
+
+	a := agent.New(mqttClient, c.Config.Prefix)
 
 	if a.Connect() {
+		for n, p := range c.Parameters {
+			a.SetParameter(n, p)
+		}
+
+		for ruleset := range c.Rules {
+			for rule := range c.Rules[ruleset] {
+				a.AddRule(ruleset, rule, c.Rules[ruleset][rule])
+			}
+		}
+
 		a.Subscribe()
 
 		for {
@@ -39,67 +73,4 @@ func main() {
 		}
 		// will never be reached: c.Disconnect()
 	}
-}
-
-type PahoClient interface {
-	IsConnected() bool
-	Connect() bool
-	Disconnect()
-	Publish(topic string, qos byte, retained bool, payload interface{}) bool
-	Subscribe(topic string, qos byte, callback func(string, string)) bool
-	Unsubscribe(topics ...string) bool
-}
-
-type pahoClient struct {
-	c mqtt.Client
-}
-
-func NewPahoClient(o *mqtt.ClientOptions) PahoClient {
-	c := &pahoClient{}
-	c.c = mqtt.NewClient(o)
-	return c
-}
-
-func (c *pahoClient) IsConnected() bool {
-	return c.c.IsConnected()
-}
-
-func (c *pahoClient) Connect() bool {
-	if token := c.c.Connect(); token.Wait() && token.Error() != nil {
-		log.Errorf("[PahoClient] Error connecting to MQTT broker: %v", token.Error())
-		return false
-	}
-	return true
-}
-
-func (c *pahoClient) Disconnect() {
-	c.c.Disconnect(250)
-}
-
-func (c *pahoClient) Publish(topic string, qos byte, retained bool, payload interface{}) bool {
-	if token := c.c.Publish(topic, qos, retained, payload); token.Wait() && token.Error() != nil {
-		log.Errorf("[PahoClient] Error publishing message for topic [%s]: %v", topic, token.Error())
-		return false
-	}
-	return true
-}
-
-func (c *pahoClient) Subscribe(topic string, qos byte, callback func(string, string)) bool {
-	pahoCallback := func(c mqtt.Client, m mqtt.Message) {
-		callback(m.Topic(), string(m.Payload()))
-	}
-
-	if token := c.c.Subscribe(topic, qos, pahoCallback); token.Wait() && token.Error() != nil {
-		log.Errorf("[PahoClient] Error subscribing to topic [%s]: %v", topic, token.Error())
-		return false
-	}
-	return true
-}
-
-func (c *pahoClient) Unsubscribe(topics ...string) bool {
-	if token := c.c.Unsubscribe(topics...); token.Wait() && token.Error() != nil {
-		log.Errorf("[PahoClient] Error unsubscribing from topic [%s]: %v", token, token.Error())
-		return false
-	}
-	return true
 }

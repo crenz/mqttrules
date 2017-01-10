@@ -70,29 +70,29 @@ func TestAgent_AddRule(t *testing.T) {
 	rule := "rule"
 
 	/* Invalid rules */
-	a.AddRule(ruleset, rule, "")
+	a.AddRuleFromString(ruleset, rule, "")
 	r := a.GetRule(ruleset, rule)
 	if r != nil {
 		t.Errorf("Rule should not have been added: Empty specification")
 	}
-	a.AddRule(ruleset, rule, `invalid-json`)
+	a.AddRuleFromString(ruleset, rule, `invalid-json`)
 	r = a.GetRule(ruleset, rule)
 	if r != nil {
 		t.Errorf("Rule should not have been added: Invalid JSON")
 	}
-	a.AddRule(ruleset, rule, `{"trigger": "test"}`)
+	a.AddRuleFromString(ruleset, rule, `{"trigger": "test"}`)
 	r = a.GetRule(ruleset, rule)
 	if r != nil {
 		t.Errorf("Rule should not have been added: No actions")
 	}
-	a.AddRule(ruleset, rule, `{"trigger": "test", "actions": []}`)
+	a.AddRuleFromString(ruleset, rule, `{"trigger": "test", "actions": []}`)
 	r = a.GetRule(ruleset, rule)
 	if r != nil {
 		t.Errorf("Rule should not have been added: No actions")
 	}
 
 	/* Simple rules */
-	a.AddRule(ruleset, rule, `{"trigger": "test", "actions": [
+	a.AddRuleFromString(ruleset, rule, `{"trigger": "test", "actions": [
           {
             "topic": "send_topic",
             "payload": "send_payload",
@@ -107,7 +107,7 @@ func TestAgent_AddRule(t *testing.T) {
 		len(r.Condition) != 0 || r.cron != nil {
 		t.Errorf("Failed to add rule with correct data")
 	}
-	a.AddRule(ruleset, rule, `{"trigger": "test", "actions": [
+	a.AddRuleFromString(ruleset, rule, `{"trigger": "test", "actions": [
           {
             "topic": "send/complex/topic",
             "qos": 1,
@@ -123,7 +123,7 @@ func TestAgent_AddRule(t *testing.T) {
 	}
 
 	/* Rules with conditions */
-	a.AddRule(ruleset, rule, `{
+	a.AddRuleFromString(ruleset, rule, `{
 		"trigger": "test",
 	        "condition": "1 > 0",
 		"actions": [{
@@ -141,7 +141,7 @@ func TestAgent_AddRule(t *testing.T) {
 	}
 
 	/* Rules with schedule */
-	a.AddRule(ruleset, rule, `{
+	a.AddRuleFromString(ruleset, rule, `{
 		"trigger": "test",
 	        "condition": "1 > 0",
 	        "schedule": "@every 10s",
@@ -168,7 +168,7 @@ func TestAgent_ExecuteRule(t *testing.T) {
 	ruleset := "ruleset"
 	rule := "rule"
 
-	a.AddRule(ruleset, rule, `{"trigger": "test", "actions": [
+	a.AddRuleFromString(ruleset, rule, `{"trigger": "test", "actions": [
           {
             "topic": "send_topic",
             "payload": "send_payload",
@@ -185,7 +185,7 @@ func TestAgent_ExecuteRule(t *testing.T) {
 		spew.Dump(m)
 	}
 
-	a.AddRule(ruleset, rule, `{"trigger": "test", "condition": "param > 41", "actions": [
+	a.AddRuleFromString(ruleset, rule, `{"trigger": "test", "condition": "param > 41", "actions": [
           {
             "topic": "condition_test",
             "payload": "send_payload",
@@ -198,7 +198,7 @@ func TestAgent_ExecuteRule(t *testing.T) {
 	if strings.Compare(m.Topic, "condition_test") == 0 {
 		t.Errorf("Rule should not have been executed: Parameter in condition not defined")
 	}
-	a.SetParameter("param", `{"value": 42}`)
+	a.SetParameterFromString("param", `{"value": 42}`)
 	a.ExecuteRule(ruleset, rule, "")
 	m = mqttClient.LastMessage()
 	if strings.Compare(m.Topic, "condition_test") != 0 ||
@@ -208,7 +208,7 @@ func TestAgent_ExecuteRule(t *testing.T) {
 		spew.Dump(m)
 	}
 
-	a.AddRule(ruleset, rule, `{"trigger": "test", "condition": "param > 41", "actions": [
+	a.AddRuleFromString(ruleset, rule, `{"trigger": "test", "condition": "param > 41", "actions": [
           {
             "topic": "condition_test",
             "payload": "${param}",

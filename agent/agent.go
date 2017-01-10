@@ -29,7 +29,8 @@ type Agent interface {
 
 	HandleMessage(topic string, payload []byte)
 
-	SetParameter(parameter string, value string)
+	SetParameterFromString(name string, value string)
+	SetParameter(name string, param Parameter)
 	GetParameterValue(parameter string) interface{}
 	TriggerParameterUpdate(parameter string, value string)
 	EvalExpressionsInString(in string, functions map[string]govaluate.ExpressionFunction) string
@@ -37,7 +38,8 @@ type Agent interface {
 	AddParameterSubscription(topic string, parameter string)
 	RemoveParameterSubscription(topic string, parameter string)
 
-	AddRule(ruleset string, rule string, value string)
+	AddRuleFromString(ruleset string, rule string, value string)
+	AddRule(ruleset string, rule string, r Rule)
 	GetRule(ruleset string, rule string) *Rule
 	AddRuleSubscription(topic string, ruleset string, rule string)
 	RemoveRuleSubscription(topic string, ruleset string, rule string)
@@ -99,13 +101,12 @@ func New(mqttClient MqttClient, prefix string) Agent {
 }
 
 func (a *agent) Connect() bool {
-	log.Infoln("Connecting to MQTT broker")
-
 	return a.mqttClient.Connect()
 }
 
 func (a *agent) Subscribe() bool {
-	return a.mqttClient.Subscribe("#", byte(1), a.messagehandler)
+	return a.mqttClient.Subscribe(fmt.Sprintf("%s/param/+", a.prefix), byte(1), a.messagehandler) &&
+		a.mqttClient.Subscribe(fmt.Sprintf("%s/rule/+/+", a.prefix), byte(1), a.messagehandler)
 }
 
 func (a *agent) Publish(topic string, qos byte, retained bool, payload string) {
@@ -122,10 +123,10 @@ func (a *agent) HandleMessage(topic string, payload []byte) {
 	}
 
 	if res := a.regexParam.FindStringSubmatch(topic); res != nil {
-		a.SetParameter(res[1], string(payload))
+		a.SetParameterFromString(res[1], string(payload))
 	}
 	if res := a.regexRule.FindStringSubmatch(topic); res != nil {
-		a.AddRule(res[1], res[2], string(payload))
+		a.AddRuleFromString(res[1], res[2], string(payload))
 	}
 
 }
