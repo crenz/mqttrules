@@ -2,7 +2,7 @@ package test
 
 type MockMessageHandler func(topic string, payload string)
 
-// Mock MQTT Client. Defined to avoid import cycle
+// MockMqttClient provides a mock client for testing. Defined to avoid import cycle.
 type MockMqttClient interface {
 	IsConnected() bool
 	Connect() bool
@@ -14,6 +14,7 @@ type MockMqttClient interface {
 	LastMessage() MockMqttMessage
 }
 
+// MockMqttMessage provides a mock MQTT message structure for testing. Defined to avoid import cycle.
 type MockMqttMessage struct {
 	Topic    string
 	QoS      byte

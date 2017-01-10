@@ -16,4 +16,7 @@ func TestPahoClient(t *testing.T) {
 	if c.IsConnected() == true {
 		t.Error("IsConnected returns wrong status")
 	}
+
+	c.Subscribe("topic", 1, nil)
+	c.Unsubscribe("topic")
 }

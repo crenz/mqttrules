@@ -60,7 +60,6 @@ func (a *agent) TriggerParameterUpdate(parameter string, value string) {
 		err := json.Unmarshal([]byte(value), &jsonData)
 		if err != nil {
 			log.Errorf("JSON parsing error in trigger payload when updating parameter %s: %v", parameter, err)
-			log.Errorf("JSON data:", value)
 			return value, err
 		}
 		res, err := jsonpath.JsonPathLookup(jsonData, args[0].(string))

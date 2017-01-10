@@ -8,7 +8,8 @@ import (
 	log "github.com/Sirupsen/logrus"
 )
 
-// Interface for MQTT client used to interface with broker
+// MqttClient provides the interface to a MQTT Client implementation. This interface is provided to enable
+// tests with a mock client
 type MqttClient interface {
 	IsConnected() bool
 	Connect() bool
@@ -20,7 +21,7 @@ type MqttClient interface {
 
 type MessageHandler func(topic string, payload string)
 
-// MQTT Rules agent
+// Agent implements the main rules agent
 type Agent interface {
 	Connect() bool
 	Subscribe() bool
@@ -191,10 +192,6 @@ func (a *agent) setPrefix(prefix string) {
 
 	a.regexParam = regexp.MustCompile(fmt.Sprintf("^%sparam/([^/]+)", a.prefix))
 	a.regexRule = regexp.MustCompile(fmt.Sprintf("^%srule/([^/]+)/([^/]+)", a.prefix))
-}
-
-func (a *agent) GetPrefix() string {
-	return a.prefix
 }
 
 func (a *agent) IsSubscribed(topic string) bool {

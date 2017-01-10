@@ -20,7 +20,7 @@ test -z "$(ineffassign .     | tee /dev/stderr)"
 
 DIR_SOURCE="$(find . -maxdepth 10 -type f -not -path '*/vendor*' -name '*.go' | xargs -I {} dirname {} | sort | uniq)"
 
-go vet ${DIR_SOURCE}
+#go vet ${DIR_SOURCE}
 env GORACE="halt_on_error=1" go test -short -race ${DIR_SOURCE}
 
 

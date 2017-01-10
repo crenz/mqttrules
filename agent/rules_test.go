@@ -62,7 +62,7 @@ func TestAgent_RemoveRuleSubscription(t *testing.T) {
 	}
 }
 
-func TestAgent_AddRule(t *testing.T) {
+func TestAgent_AddRuleFromStringInvalid(t *testing.T) {
 	mqttClient := test.NewClient()
 	a := New(mqttClient, "")
 
@@ -90,6 +90,14 @@ func TestAgent_AddRule(t *testing.T) {
 	if r != nil {
 		t.Errorf("Rule should not have been added: No actions")
 	}
+}
+
+func TestAgent_AddRuleFromString(t *testing.T) {
+	mqttClient := test.NewClient()
+	a := New(mqttClient, "")
+
+	ruleset := "ruleset"
+	rule := "rule"
 
 	/* Simple rules */
 	a.AddRuleFromString(ruleset, rule, `{"trigger": "test", "actions": [
@@ -100,7 +108,7 @@ func TestAgent_AddRule(t *testing.T) {
             "retain": false
           }
 	]}`)
-	r = a.GetRule(ruleset, rule)
+	r := a.GetRule(ruleset, rule)
 	if r == nil || strings.Compare(r.Actions[0].Topic, "send_topic") != 0 ||
 		strings.Compare(r.Actions[0].Payload, "send_payload") != 0 ||
 		r.Actions[0].QoS != 2 || r.Actions[0].Retain != false ||
@@ -158,6 +166,21 @@ func TestAgent_AddRule(t *testing.T) {
 		strings.Compare(r.Schedule, "@every 10s") != 0 || r.cron == nil {
 		t.Errorf("Failed to add rule with correct data")
 		spew.Dump(r)
+	}
+}
+
+func TestAgent_AddRule(t *testing.T) {
+	mqttClient := test.NewClient()
+	a := New(mqttClient, "")
+
+	ruleset := "ruleset"
+	rule := "rule"
+
+	a.AddRule(ruleset, rule, Rule{})
+	r := a.GetRule(ruleset, rule)
+
+	if r != nil {
+		t.Error("Should not have added empty rule")
 	}
 }
 
