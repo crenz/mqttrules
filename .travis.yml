@@ -29,7 +29,9 @@ install:
   - go get github.com/bradfitz/goimports
   - go get golang.org/x/tools/cmd/cover
   - go get github.com/mattn/goveralls
-  - docker build -t crenz/mqttrules docker/default
+  - if [ "$TRAVIS_BRANCH" == "master" ] && [ "BUILD_DOCKER_IMAGES" ]; then
+    docker build -t crenz/mqttrules docker/default;
+    fi
 
 script:
   - go get -t -v ./...
