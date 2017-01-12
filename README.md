@@ -5,127 +5,105 @@
 
 # mqttrules
 
-mqttrules executes rules that operate on MQTT messages. The rules are defined by sending MQTT messages.
+mqttrules executes rules that operate on MQTT messages.
 
-**NOTE: This project is currently in an alpha stage. **
+## Usage
 
-## 
-
-Rules are defined as part of _rule sets_. Each rule set can be enabled or disabled. In addition, each rule can be enabled or disabled.
-
-Rules can be activated in two ways
-
-* through incoming MQTT messages (_triggers_)
-* through a cron-like _schedule_
-
-Once a rule is activated, one or several (optional) _conditions_ are checked. If the conditions are met, the specified _actions_ are executed. 
-
-Possible actions are
-* Send out one or more MQTT messages.
-
-When sending out messages, a template mechanism can be used to customize the message and message content being sent out. 
-In those templates, you can refer to pre-defined _parameters_ as well as to the JSON content of the trigger message.
-
-### Rule examples
-
-#### Use cases for testing viability of specification:
-
-##### Lighting
-
-1. Use a switch to switch off all lamps
-
-2. Use an on/off switch to toggle a lamp
-
-3. Use an on/off switch to toggle several lamps
-
-4. Switch to a certain scene at 7pm every night. Switch to another scene at 7am.
-
-5. Set all lights to the value passed in the payload of a message
-
-##### Heating
-
-1. Set all thermostats to $NIGHT_TEMP °C at night
-
-2. Use a switch to toggle vacation mode. Vacation mode sets $DAY_TEMP to $DAY_TEMP_VACATION_LEVEL
-
-3. Set a thermostat to a lower temperature when opening a certain window, set it back when closing it.
-
-##### Sensors
-
-1. Send an alert if humidity goes above a certain level
-
-2. Reformat sensor values to a more agreeable format and send them out again
-
-#### Examples
-
-`rule/lighting/switch_on`
-
-```json
-{
-	"trigger": "",
-	"conditions": ["$lights-livingroom-status$ > 0"],
-	"actions": [{
-		"topic": "lights/livingroom/set",
-		"payload": "{ \"value\" : 0}",
-		"qos": 2,
-		"retain": false
-	}]
-}
-
-
-
+### Command-line
 
 ```
-
-## Defining parameters
-
-mqttrules treats condition and action payload expressions in a template-like fashion. You can set parameters that then can be used to customize these expressions.
-
-The mqttrules parameters all live in the `param` topic space. You can set a parameter by sending a message with the topic `param/$PARAM_NAME`.
-
-Parameters can be set either to a fixed value, or they can be tied to MQTT message payloads. In the latter case, mqttrules will subscribe to the respective MQTT topics and update the parameter value when new messages are received.
-
-### Use cases for testing viability of specification
-
-1. Set a parameter to a fixed value
-
-2. Tie a parameter to a message payload
-
-3. Tie a parameter to a JSON expression operating on a message payload
-
-### Examples
-
-Sent to the appropriate topic, the following payload will set a parameter to the fixed value `"42"`.
-
-```json
-{
-    "value": "42"
-}
+go get mqttrules
+# without configuration file
+mqttrules --broker tcp://localhost:1883 --username user --password pass
+# with configuration file
+mqttrules --config test/testConfig.json
 ```
 
-Sent to the appropriate topic, the following payload will tie a parameter value to the payload of the topic `lighting/livingroom/status`:
+### Docker image
 
-`Topic: param/test-tie-payload`
-```json
-{
-    "topic": "/lighting/livingroom/status"
-}
+```
+docker run -v /var/mqttrules:/var/mqttrules crenz/mqttrules
 ```
 
-Sent to the appropriate topic, the following payload will tie a parameter value to the payload of the topic `lighting/livingroom/status`. The payload will be interpreted as JSON, and the parameter will be set to whatever ".value" evaluates to:
 
-`param/test-tie-json-payload`
-```json
+## Rule definition
+
+Each rule belongs to a _ruleset_, has a _name_, is either _triggered_ through
+an incoming MQTT message with a certain topic or run according to a cron-like
+_schedule_. If an (optional) _condition_ evaluates to true, one or several
+_actions_ are performed. The only kind of action currently available is
+sending out an MQTT message.
+
+Here is an example. It refers to a _parameter_ called lights_kitchen_state.` This will be explained later.
+
+```
 {
-    "topic": "/lighting/livingroom/status",
-    "jsonPath": "$.value" 
+        "trigger": "home/buttons/kitchen/status",
+        "condition": "payload() > 0",
+        "actions": [
+          {
+            "topic": "home/lights/kitchen/set",
+            "payload": "{ \"on\" : ${!lights_kitchen_state}}",
+            "qos": 2,
+            "retain": false
+          }
+        ]
+}
+ ```
+
+See [testConfig.json](../blob/master/test/testConfig.json)
+for more examples, and for how to specify rules within the configuration file.
+
+### Defining rules via MQTT messages
+
+To define a rule using MQTT messages, send a message using the topic `rule/$RULESET/$RULENAME`.
+As payload, send a JSON string in the format of the example above. In the
+configuration file, you can also specify a prefix. With a prefix of `mqttrules/`,
+the topic could be e.g. `mqttrules/rule/lights/kitchen_switch.
+
+## Parameters
+
+Parameters are values that can be used both as part of
+_condition expressions_ as well as _payload expressions_. Parameters can have
+an initial _value_, but they also can be defined based upon receiving messages
+with a certain _topic_ and evaluating an _expression_ that defines the parameter value.
+
+The following example defines a parameter that extracts the `on` value out
+of MQTT messages with a JSON payload and the topic `home/lights/kitchen/status`.
+
+```
+{
+      "value": "",
+      "topic": "home/lights/kitchen/status",
+      "expression": "payload(\"$.on\")"
 }
 ```
 
 
-## Components
+### Defining parameters via MQTT messages
 
-* `cmd/mqttrules/mqttrules.go`: utility to run mqttrules
+To define a parameter using MQTT messages, send a message using the
+topic `param/$PARAMNAME`. As payload, send a JSON string in the format of the example above. In the
+configuration file, you can also specify a prefix. With a prefix of `mqttrules/`,
+the topic could be e.g. `mqttrules/param/lights_kitchen_state.`
+
+**Note:** It is highly recommended to only use the characters `[A-Za-z0-9_]`
+for the rule names, and to avoid especially the minus sign.
+
+## Expressions
+
+In mqttrules, expressions can make use of standard arithmetic expressions,
+parameters and the special `payload()` function. Without a parameter,
+`payload()` returns the complete payload of the incoming MQTT message
+(that triggered the rule execution or parameter update). Alternatively,
+you can specify a JSON path as parameter, e.g. `payload("$.state.on")`.
+
+Condition expressions (used in rules) need to evaluate to a boolean value.
+Parameter expressions (used to determine the value of a parameter) can evaluate
+to any kind of value.
+
+Expressions are evaluated using the [govaluate](https://github.com/Knetic/govaluate) package. For
+more information, refer to that package's documentation.
 
 ## Kudos
 
@@ -134,6 +112,7 @@ mqttrules is made possible by leveraging some awesome Go packages:
 * [cron](https://github.com/robfig/cron) - A cron spec parser and runner
 * [govaluate](https://github.com/Knetic/govaluate) - Arbitrary expression evaluation for golang
 * [jsonpath](https://github.com/oliveagle/jsonpath) - A golang implementation of JsonPath syntax.
+* [gosweep|https://github.com/h12w/gosweep] - A shell script to do various checks on Go code.
 
 ## License
 

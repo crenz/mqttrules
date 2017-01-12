@@ -34,7 +34,7 @@
       }
     },
     "lights": {
-      "kitchen-switch": {
+      "kitchen_switch": {
         "trigger": "home/buttons/kitchen/status",
         "condition": "payload() > 0",
         "actions": [
