@@ -112,7 +112,7 @@ mqttrules is made possible by leveraging some awesome Go packages:
 * [cron](https://github.com/robfig/cron) - A cron spec parser and runner
 * [govaluate](https://github.com/Knetic/govaluate) - Arbitrary expression evaluation for golang
 * [jsonpath](https://github.com/oliveagle/jsonpath) - A golang implementation of JsonPath syntax.
-* [gosweep|https://github.com/h12w/gosweep] - A shell script to do various checks on Go code.
+* [gosweep](https://github.com/h12w/gosweep) - A shell script to do various checks on Go code.
 
 ## License
 
