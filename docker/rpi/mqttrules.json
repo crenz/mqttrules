@@ -1,0 +1,51 @@
+{
+  "config": {
+    "broker": "tcp://localhost:1883",
+    "clientID": "mqttrules",
+    "username": "",
+    "password": "",
+    "prefix": "mqttrules",
+    "disableRulesUpdate": false
+  },
+  "parameters": {
+    "alive_counter": {
+      "value": 0,
+      "topic": "home/mqttrules/alive",
+      "expression": "payload(\"$.value\")"
+    },
+    "lights_kitchen_state": {
+      "value": "",
+      "topic": "home/lights/kitchen/status",
+      "expression": "payload(\"$.on\")"
+    }
+  },
+  "rules": {
+    "general": {
+      "alive": {
+        "schedule": "@every 1s",
+        "actions": [
+          {
+            "topic": "home/mqttrules/alive",
+            "payload": "{ \"value\": ${alive_counter + 1}}",
+            "qos": 1,
+            "retain": false
+          }
+        ]
+      }
+    },
+    "lights": {
+      "kitchen_switch": {
+        "trigger": "home/buttons/kitchen/status",
+        "condition": "payload() > 0",
+        "actions": [
+          {
+            "topic": "home/lights/kitchen/set",
+            "payload": "{ \"on\" : ${!lights_kitchen_state}}",
+            "qos": 2,
+            "retain": false
+          }
+        ]
+      }
+    }
+  }
+}

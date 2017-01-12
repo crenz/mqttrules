@@ -5,4 +5,6 @@ RUN go get -t -v github.com/crenz/mqttrules/
 
 VOLUME /var/lib/mqttrules
 
-CMD ["/go/bin/mqttrules"]
+COPY mqttrules.json /var/lib/mqttrules
+
+CMD ["/go/bin/mqttrules", "-config /var/lib/mqttrules/mqttrules.json"]
