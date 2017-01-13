@@ -81,7 +81,7 @@ func TestAgent_HandleMessage(t *testing.T) {
 		if r := testClient.GetParameterValue("test1"); r != 42.0 {
 			t.Errorf("[Prefix = '%s'], Parameter value is %v, should be 42", prefix, spew.Sdump(r))
 		}
-		testClient.HandleMessage(fmt.Sprintf("param/test2", prefix), []byte(`{"value": 42}`))
+		testClient.HandleMessage("param/test2", []byte(`{"value": 42}`))
 		if r := testClient.GetParameterValue("test2"); r == 42.0 && len(prefix) > 0 {
 			t.Errorf("[Prefix = '%s'], Parameter should not have been set", prefix)
 		}
