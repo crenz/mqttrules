@@ -52,6 +52,7 @@ type Agent interface {
 	ExecuteRule(ruleset string, rule string, triggerPayload string)
 	Publish(topic string, qos byte, retained bool, payload string)
 	IsSubscribed(topic string) bool
+	InjectConfigFile(c ConfigFile)
 }
 
 type rulesKey struct {
@@ -220,4 +221,16 @@ func (a *agent) setPrefix(prefix string) {
 func (a *agent) IsSubscribed(topic string) bool {
 	_, exists := a.subscriptions[topic]
 	return exists
+}
+
+func (a *agent) InjectConfigFile(c ConfigFile) {
+	for n, p := range c.Parameters {
+		a.SetParameter(n, p)
+	}
+
+	for ruleset := range c.Rules {
+		for rule := range c.Rules[ruleset] {
+			a.AddRule(ruleset, rule, c.Rules[ruleset][rule])
+		}
+	}
 }

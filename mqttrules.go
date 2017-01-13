@@ -56,16 +56,7 @@ func main() {
 	a := agent.New(mqttClient, c.Config.Prefix)
 
 	if a.Connect() {
-		for n, p := range c.Parameters {
-			a.SetParameter(n, p)
-		}
-
-		for ruleset := range c.Rules {
-			for rule := range c.Rules[ruleset] {
-				a.AddRule(ruleset, rule, c.Rules[ruleset][rule])
-			}
-		}
-
+		a.InjectConfigFile(*c)
 		a.Subscribe()
 
 		for {

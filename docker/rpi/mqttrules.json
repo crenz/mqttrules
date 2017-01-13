@@ -14,7 +14,7 @@
       "expression": "payload(\"$.value\")"
     },
     "lights_kitchen_state": {
-      "value": "",
+      "value": 0,
       "topic": "home/lights/kitchen/status",
       "expression": "payload(\"$.on\")"
     }
@@ -40,7 +40,7 @@
         "actions": [
           {
             "topic": "home/lights/kitchen/set",
-            "payload": "{ \"on\" : ${!lights_kitchen_state}}",
+            "payload": "{ \"on\" : ${lights_kitchen_state > 0 ? 0 : 1}}",
             "qos": 2,
             "retain": false
           }

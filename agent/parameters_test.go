@@ -3,6 +3,8 @@ package agent
 import (
 	"testing"
 
+	"fmt"
+
 	"github.com/crenz/mqttrules/test"
 	"github.com/davecgh/go-spew/spew"
 )
@@ -122,19 +124,17 @@ func TestRemoveParameterSubscription(t *testing.T) {
 	}
 }
 
-/*
-func ExampleSetParameter() {
-	//	c := NewClient()
+func TestAgent_TriggerParameterUpdate(t *testing.T) {
+	tc := New(test.NewClient(), "")
 
-	//	c.SetParameter("/rules/TTL", "60")
+	for _, v := range []interface{}{
+		float64(42),
+		42.1234,
+	} {
+		tc.SetParameterFromString("test", fmt.Sprintf("%v", v))
+		if r := tc.GetParameterValue("test"); r != v {
+			t.Errorf("Expected %v, got %v", spew.Sdump(v), spew.Sdump(r))
+		}
+
+	}
 }
-
-func ExampleGetParameterValue() {
-	//	c := NewClient()
-
-	//	c.GetParameterValue("/rules/TTL")
-
-	//	result := GetParameter("/rules/TTL")
-
-}
-*/

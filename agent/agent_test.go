@@ -6,6 +6,8 @@ import (
 
 	"strings"
 
+	"os"
+
 	"github.com/crenz/mqttrules/test"
 	"github.com/davecgh/go-spew/spew"
 )
@@ -84,4 +86,59 @@ func TestAgent_HandleMessage(t *testing.T) {
 			t.Errorf("[Prefix = '%s'], Parameter should not have been set", prefix)
 		}
 	}
+}
+
+func Test_TestConfigJSON(t *testing.T) {
+	path := "../test/testConfig.json"
+
+	c, err := ConfigFromFile(path)
+	if err != nil {
+		wd, _ := os.Getwd()
+		t.Errorf("Failed to read config file %s: %v (working dir: %s)", path, err, wd)
+		return
+	}
+
+	mqttClient := test.NewClient()
+	a := New(mqttClient, "")
+	a.Connect()
+	a.InjectConfigFile(*c)
+
+	for p := range c.Parameters {
+		if v := a.GetParameterValue(p); c.Parameters[p].Value != v {
+			t.Errorf("Param %s: expected %v, got %v", p, c.Parameters[p].Value, v)
+		}
+	}
+
+	for ruleset := range c.Rules {
+		for rule := range c.Rules[ruleset] {
+			if r := a.GetRule(ruleset, rule); r == nil {
+				t.Errorf("Rule %s/%s was not created", ruleset, rule)
+			}
+		}
+	}
+
+	a.Subscribe()
+
+	if v := a.GetParameterValue("lights_kitchen_state"); v != 0.0 {
+		t.Errorf("Param lights_kitchen_state: expected initial value %v, got %v", spew.Sdump(0.0), spew.Sdump(v))
+	}
+	a.HandleMessage("home/lights/kitchen/status", []byte(` { "on": 1 } `))
+	if v := a.GetParameterValue("lights_kitchen_state"); v != 1.0 {
+		t.Errorf("Param lights_kitchen_state: expected updated value %v, got %v", spew.Sdump(1.0), spew.Sdump(v))
+	}
+
+	a.HandleMessage("home/buttons/kitchen/status", []byte("1"))
+	message := mqttClient.LastMessage()
+
+	if strings.Compare("home/lights/kitchen/set", message.Topic) != 0 {
+		t.Errorf("Received unexpected message with topic %s", message.Topic)
+		return
+	}
+	a.HandleMessage("home/lights/kitchen/status", []byte(message.Payload.(string)))
+	if v := a.GetParameterValue("lights_kitchen_state"); v != 0.0 {
+		t.Errorf("Param lights_kitchen_state: expected updated value %v, got %v", spew.Sdump(0.0), spew.Sdump(v))
+		t.Errorf(spew.Sdump(message))
+	}
+
+	a.Disconnect()
 }

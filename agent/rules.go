@@ -130,7 +130,7 @@ func (a *agent) ExecuteRule(ruleset string, rule string, triggerPayload string) 
 	fPayload := func(args ...interface{}) (interface{}, error) {
 		if len(args) == 0 {
 			// No JSON path given - return whole payload
-			return triggerPayload, nil
+			return a.parseParameterValue(triggerPayload), nil
 		}
 		var jsonData interface{}
 		err := json.Unmarshal([]byte(triggerPayload), &jsonData)

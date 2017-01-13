@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"strconv"
+
 	"github.com/Knetic/govaluate"
 	log "github.com/Sirupsen/logrus"
 	"github.com/oliveagle/jsonpath"
@@ -18,6 +20,15 @@ type Parameter struct {
 
 type parameterMap map[string]*Parameter
 
+func (a *agent) parseParameterValue(value string) interface{} {
+	f, err := strconv.ParseFloat(value, 64)
+	if err == nil {
+		return f
+	}
+
+	return value
+}
+
 func (a *agent) SetParameterFromString(name string, value string) {
 	if len(name) == 0 {
 		return
@@ -26,8 +37,9 @@ func (a *agent) SetParameterFromString(name string, value string) {
 	var p Parameter
 	err := json.Unmarshal([]byte(value), &p)
 	if err != nil {
-		a.parameters[name] = &Parameter{value, "", ""}
-		a.SetParameterValue(name, value)
+		v := a.parseParameterValue(value)
+		a.parameters[name] = &Parameter{v, "", ""}
+		a.SetParameterValue(name, v)
 		log.Debugf("Setting parameter %s to non-JSON value", name)
 		return
 	}
@@ -53,8 +65,8 @@ func (a *agent) SetParameterValue(parameter string, value interface{}) {
 func (a *agent) TriggerParameterUpdate(parameter string, value string) {
 	fPayload := func(args ...interface{}) (interface{}, error) {
 		if len(args) == 0 {
-			// No JSON path given - return whole payload
-			return value, nil
+			// No JSON path given - return whole payload.
+			return a.parseParameterValue(value), nil
 		}
 		var jsonData interface{}
 		err := json.Unmarshal([]byte(value), &jsonData)
