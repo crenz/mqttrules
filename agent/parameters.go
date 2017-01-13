@@ -50,7 +50,9 @@ func (a *agent) SetParameter(name string, p Parameter) {
 	if a.parameters[name] != nil && len(a.parameters[name].Topic) > 0 {
 		a.RemoveParameterSubscription(p.Topic, name)
 	}
+	a.paramMutex.Lock()
 	a.parameters[name] = &p
+	a.paramMutex.Unlock()
 	a.SetParameterValue(name, p.Value)
 	if len(a.parameters[name].Topic) > 0 {
 		a.AddParameterSubscription(p.Topic, name)
@@ -59,7 +61,9 @@ func (a *agent) SetParameter(name string, p Parameter) {
 }
 
 func (a *agent) SetParameterValue(parameter string, value interface{}) {
+	a.paramMutex.Lock()
 	a.parameterValues[parameter] = value
+	a.paramMutex.Unlock()
 }
 
 func (a *agent) TriggerParameterUpdate(parameter string, value string) {
@@ -87,7 +91,9 @@ func (a *agent) TriggerParameterUpdate(parameter string, value string) {
 		"payload": fPayload,
 	}
 
+	a.paramMutex.Lock()
 	p, exists := a.parameters[parameter]
+	a.paramMutex.Unlock()
 	if !exists {
 		return
 	}
@@ -114,8 +120,10 @@ func (a *agent) TriggerParameterUpdate(parameter string, value string) {
 
 }
 
-func (c *agent) GetParameterValue(parameter string) interface{} {
-	v, exists := c.parameterValues[parameter]
+func (a *agent) GetParameterValue(parameter string) interface{} {
+	a.paramMutex.Lock()
+	v, exists := a.parameterValues[parameter]
+	a.paramMutex.Unlock()
 	if !exists {
 		v = ""
 	}

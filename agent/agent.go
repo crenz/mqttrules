@@ -8,6 +8,8 @@ import (
 
 	"encoding/json"
 
+	"sync"
+
 	"github.com/Knetic/govaluate"
 	log "github.com/Sirupsen/logrus"
 )
@@ -83,6 +85,9 @@ type agent struct {
 	regexRule      *regexp.Regexp
 	regexSys       *regexp.Regexp
 	messagehandler MessageHandler
+
+	rulesMutex sync.Mutex
+	paramMutex sync.Mutex
 }
 
 func (a *agent) initialize() {

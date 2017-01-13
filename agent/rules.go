@@ -28,10 +28,10 @@ type Rule struct {
 	cron                *cron.Cron
 }
 
-var rules = map[string]Rule{}
-
 func (a *agent) GetRule(ruleset string, rule string) *Rule {
+	a.rulesMutex.Lock()
 	r, exists := a.rules[rulesKey{ruleset, rule}]
+	a.rulesMutex.Unlock()
 
 	if exists {
 		return &r
@@ -81,8 +81,7 @@ func (a *agent) AddRule(ruleset string, rule string, r Rule) {
 
 	rk := rulesKey{ruleset, rule}
 
-	prevR, exists := a.rules[rk]
-	if exists {
+	if prevR := a.GetRule(ruleset, rule); prevR != nil {
 		if len(prevR.Trigger) > 0 {
 			a.RemoveRuleSubscription(r.Trigger, ruleset, rule)
 		}
@@ -91,7 +90,9 @@ func (a *agent) AddRule(ruleset string, rule string, r Rule) {
 		}
 	}
 
+	a.rulesMutex.Lock()
 	a.rules[rk] = r
+	a.rulesMutex.Unlock()
 
 	if len(r.Trigger) > 0 {
 		a.AddRuleSubscription(r.Trigger, ruleset, rule)
@@ -151,7 +152,10 @@ func (a *agent) ExecuteRule(ruleset string, rule string, triggerPayload string) 
 		"payload": fPayload,
 	}
 
-	r := a.rules[rulesKey{ruleset, rule}]
+	r := a.GetRule(ruleset, rule)
+	if r == nil {
+		return
+	}
 	if len(r.Condition) > 0 {
 		expression, err := govaluate.NewEvaluableExpressionWithFunctions(r.Condition, functions)
 		if err != nil {
@@ -187,7 +191,9 @@ func (a *agent) EvalExpressionsInString(in string, functions map[string]govaluat
 			log.Errorln("String: ", in, "; Expression:", e, "; i: ", i)
 			return ""
 		}
+		a.paramMutex.Lock()
 		result, err := expression.Evaluate(a.parameterValues)
+		a.paramMutex.Unlock()
 		if err != nil {
 			log.Errorln("Error evaluating expression:", err)
 			return ""
