@@ -80,7 +80,6 @@ type agent struct {
 }
 
 func (a *agent) initialize() {
-	a.setPrefix("")
 	a.parameters = make(parameterMap)
 	a.parameterValues = make(map[string]interface{})
 	a.rules = make(rulesMap)
@@ -96,7 +95,7 @@ func New(mqttClient MqttClient, prefix string) Agent {
 	a := &agent{}
 	a.initialize()
 	a.mqttClient = mqttClient
-	a.prefix = prefix
+	a.setPrefix(prefix)
 
 	return a
 }
@@ -107,6 +106,7 @@ func (a *agent) Connect() bool {
 
 func (a *agent) Subscribe() bool {
 	return a.mqttClient.Subscribe(fmt.Sprintf("%s/param/+", a.prefix), byte(1), a.messagehandler) &&
+		a.mqttClient.Subscribe(fmt.Sprintf("%s/rule/+/+", a.prefix), byte(1), a.messagehandler) &&
 		a.mqttClient.Subscribe(fmt.Sprintf("%s/rule/+/+", a.prefix), byte(1), a.messagehandler)
 }
 

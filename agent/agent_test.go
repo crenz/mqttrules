@@ -69,3 +69,19 @@ func TestSendParam(t *testing.T) {
 		}
 	}
 }
+
+func TestAgent_HandleMessage(t *testing.T) {
+	for _, prefix := range []string{"", "prefix", "prefix/"} {
+		mqttClient := test.NewClient()
+		testClient := New(mqttClient, prefix)
+
+		testClient.HandleMessage(fmt.Sprintf("%sparam/test1", prefix), []byte(`{"value": 42}`))
+		if r := testClient.GetParameterValue("test1"); r != 42.0 {
+			t.Errorf("[Prefix = '%s'], Parameter value is %v, should be 42", prefix, spew.Sdump(r))
+		}
+		testClient.HandleMessage(fmt.Sprintf("param/test2", prefix), []byte(`{"value": 42}`))
+		if r := testClient.GetParameterValue("test2"); r == 42.0 && len(prefix) > 0 {
+			t.Errorf("[Prefix = '%s'], Parameter should not have been set", prefix)
+		}
+	}
+}

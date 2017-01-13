@@ -4,7 +4,7 @@
     "clientID": "mqttrules",
     "username": "",
     "password": "",
-    "prefix": "mqttrules",
+    "prefix": "mqttrules/",
     "disableRulesUpdate": false
   },
   "parameters": {
