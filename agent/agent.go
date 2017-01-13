@@ -4,6 +4,10 @@ import (
 	"fmt"
 	"regexp"
 
+	"strings"
+
+	"encoding/json"
+
 	"github.com/Knetic/govaluate"
 	log "github.com/Sirupsen/logrus"
 )
@@ -76,6 +80,7 @@ type agent struct {
 
 	regexParam     *regexp.Regexp
 	regexRule      *regexp.Regexp
+	regexSys       *regexp.Regexp
 	messagehandler MessageHandler
 }
 
@@ -105,9 +110,9 @@ func (a *agent) Connect() bool {
 }
 
 func (a *agent) Subscribe() bool {
-	return a.mqttClient.Subscribe(fmt.Sprintf("%s/param/+", a.prefix), byte(1), a.messagehandler) &&
-		a.mqttClient.Subscribe(fmt.Sprintf("%s/rule/+/+", a.prefix), byte(1), a.messagehandler) &&
-		a.mqttClient.Subscribe(fmt.Sprintf("%s/rule/+/+", a.prefix), byte(1), a.messagehandler)
+	return a.mqttClient.Subscribe(fmt.Sprintf("%sparam/+", a.prefix), byte(1), a.messagehandler) &&
+		a.mqttClient.Subscribe(fmt.Sprintf("%srule/+/+", a.prefix), byte(1), a.messagehandler) &&
+		a.mqttClient.Subscribe(fmt.Sprintf("%s$MQTTRULES", a.prefix), byte(1), a.messagehandler)
 }
 
 func (a *agent) Publish(topic string, qos byte, retained bool, payload string) {
@@ -129,7 +134,23 @@ func (a *agent) HandleMessage(topic string, payload []byte) {
 	if res := a.regexRule.FindStringSubmatch(topic); res != nil {
 		a.AddRuleFromString(res[1], res[2], string(payload))
 	}
-
+	if a.regexSys.MatchString(topic) {
+		switch {
+		case strings.Compare("parameters", string(payload)) == 0:
+			for key := range a.parameters {
+				s, _ := json.Marshal(a.parameters[key])
+				a.Publish(fmt.Sprintf("%s$MQTTRULES/parameters/%s", a.prefix, key), 2, false, string(s))
+			}
+		case strings.Compare("rules", string(payload)) == 0:
+			for rk := range a.rules {
+				s, _ := json.Marshal(a.rules[rk])
+				a.Publish(fmt.Sprintf("%s$MQTTRULES/rules/%s/%s", a.prefix, rk.ruleset, rk.rule), 2, false, string(s))
+			}
+			a.Publish(fmt.Sprintf("%s$MQTTRULES/rules", a.prefix), 2, false, fmt.Sprintf("%+v", a.rules))
+		default:
+			a.Publish(fmt.Sprintf("%s$MQTTRULES", a.prefix), 2, false, fmt.Sprintf("Unknown command '%s'", string(payload)))
+		}
+	}
 }
 
 func (a *agent) Listen() {
@@ -161,7 +182,7 @@ func (a *agent) ensureSubscription(topic string) bool {
 			log.Errorln("Failed to add subscription [%s]")
 			return false
 		}
-		log.Infof("Subscribed to MQTT topic [%s]", topic)
+		log.Debugf("Subscribed to MQTT topic [%s]", topic)
 	}
 	return true
 }
@@ -192,6 +213,8 @@ func (a *agent) setPrefix(prefix string) {
 
 	a.regexParam = regexp.MustCompile(fmt.Sprintf("^%sparam/([^/]+)", a.prefix))
 	a.regexRule = regexp.MustCompile(fmt.Sprintf("^%srule/([^/]+)/([^/]+)", a.prefix))
+	a.regexSys = regexp.MustCompile(fmt.Sprintf("^%s[$]MQTTRULES", a.prefix))
+
 }
 
 func (a *agent) IsSubscribed(topic string) bool {

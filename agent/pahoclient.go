@@ -57,6 +57,7 @@ func (c *pahoClient) Subscribe(topic string, qos byte, callback func(string, str
 		log.Errorf("[PahoClient] Error subscribing to topic [%s]: %v", topic, token.Error())
 		return false
 	}
+	log.Infof("[PahoClient] Subscribed to MQTT topic [%s]", topic)
 	return true
 }
 
