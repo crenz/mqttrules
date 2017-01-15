@@ -14,8 +14,10 @@ func init() {
 	log.SetOutput(colorable.NewColorableStdout())
 }
 
+const defaultBroker string = "tcp://localhost:1883"
+
 func main() {
-	pBroker := flag.String("broker", "tcp://localhost:1883", "MQTT broker URI (e.g. tcp://localhost:1883)")
+	pBroker := flag.String("broker", "", "MQTT broker URI (e.g. tcp://localhost:1883)")
 	pConfigFile := flag.String("config", "", "(optional) configuration file")
 	pUsername := flag.String("username", "", "(optional) user name for MQTT broker access")
 	pPassword := flag.String("password", "", "(optional) password for MQTT broker access")
@@ -37,6 +39,9 @@ func main() {
 	// Arguments given via command line have precedence
 	if len(*pBroker) > 0 {
 		c.Config.Broker = *pBroker
+	}
+	if len(c.Config.Broker) == 0 {
+		c.Config.Broker = defaultBroker
 	}
 	if len(*pUsername) > 0 {
 		c.Config.Username = *pUsername
