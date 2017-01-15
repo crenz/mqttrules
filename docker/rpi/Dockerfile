@@ -7,5 +7,5 @@ VOLUME /var/lib/mqttrules
 
 COPY mqttrules.json /var/lib/mqttrules/
 
-CMD ["/gopath1.5/bin/mqttrules", "--config /var/lib/mqttrules/mqttrules.json"]
+CMD ["/gopath1.5/bin/mqttrules", "-config", "/var/lib/mqttrules/mqttrules.json"]
 
