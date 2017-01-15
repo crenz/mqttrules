@@ -29,7 +29,7 @@ install:
   - go get github.com/bradfitz/goimports
   - go get golang.org/x/tools/cmd/cover
   - go get github.com/mattn/goveralls
-  - if [ "$TRAVIS_BRANCH" == "master" ] && [ "BUILD_DOCKER_IMAGES" == "1" ]; then
+  - if [ "$BUILD_DOCKER_IMAGES" == "1" ]; then
     docker build --no-cache -t crenz/mqttrules docker/default;
     fi
 
@@ -40,7 +40,7 @@ script:
   - $HOME/gopath/bin/goveralls -coverprofile=profile.cov -service=travis-ci
 
 after_success:
-  - if [ "$TRAVIS_BRANCH" == "master" ] && [ "BUILD_DOCKER_IMAGES" ]; then
+  - if [ "$BUILD_DOCKER_IMAGES" == "1" ]; then
     docker login -u="$DOCKER_USER" -p="$DOCKER_PASS";
     docker push crenz/mqttrules;
     fi
