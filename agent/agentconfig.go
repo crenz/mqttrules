@@ -12,6 +12,7 @@ type Config struct {
 	Password           string
 	Prefix             string
 	DisableRulesUpdate bool
+	Loglevel           string
 }
 
 type ConfigFile struct {

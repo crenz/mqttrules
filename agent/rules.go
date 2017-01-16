@@ -127,7 +127,12 @@ func (a *agent) RemoveRuleSubscription(topic string, ruleset string, rule string
 }
 
 func (a *agent) ExecuteRule(ruleset string, rule string, triggerPayload string) {
-	log.Debugf("Executing rule %s/%s", ruleset, rule)
+	log.WithFields(log.Fields{
+		"component": "Rules",
+		"ruleset":   ruleset,
+		"rule":      rule,
+	}).Debug("Incoming rule execution request")
+
 	fPayload := func(args ...interface{}) (interface{}, error) {
 		if len(args) == 0 {
 			// No JSON path given - return whole payload
@@ -192,8 +197,9 @@ func (a *agent) EvalExpressionsInString(in string, functions map[string]govaluat
 			return ""
 		}
 		a.paramMutex.Lock()
-		result, err := expression.Evaluate(a.parameterValues)
+		v := a.parameterValues
 		a.paramMutex.Unlock()
+		result, err := expression.Evaluate(v)
 		if err != nil {
 			log.Errorln("Error evaluating expression:", err)
 			return ""

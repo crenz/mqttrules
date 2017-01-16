@@ -2,7 +2,6 @@ package agent
 
 import (
 	"encoding/json"
-	"fmt"
 
 	"strconv"
 
@@ -100,8 +99,13 @@ func (a *agent) TriggerParameterUpdate(parameter string, value string) {
 
 	if len(p.Expression) == 0 {
 		// directly set value
-		a.parameters[parameter].Value = value
-		log.Debugf("Updated parameter %s to non-JSON value %s", parameter, fmt.Sprintf("%+v\n", p))
+		a.SetParameterValue(parameter, value)
+		log.WithFields(log.Fields{
+			"component": "Parameters",
+			"parameter": parameter,
+			"value":     value,
+			"mode":      "fullPayload",
+		}).Debug("Parameter value updated")
 	} else {
 		expression, err := govaluate.NewEvaluableExpressionWithFunctions(p.Expression, functions)
 		if err != nil {
@@ -115,7 +119,12 @@ func (a *agent) TriggerParameterUpdate(parameter string, value string) {
 		}
 
 		a.SetParameterValue(parameter, result)
-		log.Debugf("Updated parameter %s to value %s", parameter, a.parameters[parameter].Value)
+		log.WithFields(log.Fields{
+			"component": "Parameters",
+			"parameter": parameter,
+			"mode":      "JSON",
+			"value":     result,
+		}).Debug("Parameter value updated")
 	}
 
 }

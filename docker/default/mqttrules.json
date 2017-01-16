@@ -5,13 +5,14 @@
     "username": "",
     "password": "",
     "prefix": "mqttrules/",
-    "disableRulesUpdate": false
+    "disableRulesUpdate": false,
+    "loglevel": "info"
   },
   "parameters": {
     "alive_counter": {
       "value": 0,
       "topic": "home/mqttrules/alive",
-      "expression": "payload(\"$.value\")"
+      "expression": "payload(\"$.seconds\")"
     },
     "lights_kitchen_state": {
       "value": 0,
@@ -26,7 +27,7 @@
         "actions": [
           {
             "topic": "home/mqttrules/alive",
-            "payload": "{ \"value\": ${alive_counter + 1}}",
+            "payload": "{ \"seconds\": ${alive_counter + 1}}",
             "qos": 1,
             "retain": false
           }

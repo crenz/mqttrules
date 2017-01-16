@@ -16,11 +16,21 @@ func init() {
 
 const defaultBroker string = "tcp://localhost:1883"
 
+func getLogLevel(llString string) log.Level {
+	level, error := log.ParseLevel(llString)
+	if error != nil {
+		log.Errorf("Unknown log level %s, using info", llString)
+		return log.InfoLevel
+	}
+	return level
+}
+
 func main() {
-	pBroker := flag.String("broker", "", "MQTT broker URI (e.g. tcp://localhost:1883)")
+	pBroker := flag.String("broker", "", "(optional) MQTT broker URI (e.g. tcp://localhost:1883)")
 	pConfigFile := flag.String("config", "", "(optional) configuration file")
 	pUsername := flag.String("username", "", "(optional) user name for MQTT broker access")
 	pPassword := flag.String("password", "", "(optional) password for MQTT broker access")
+	pLogLevel := flag.String("loglevel", "info", "(optional) logging level (panic, fatal, error, warn, info, debug)")
 
 	flag.Parse()
 
@@ -49,6 +59,11 @@ func main() {
 	if len(*pPassword) > 0 {
 		c.Config.Username = *pPassword
 	}
+	if len(*pLogLevel) > 0 {
+		c.Config.Loglevel = *pLogLevel
+	}
+
+	log.SetLevel(getLogLevel(c.Config.Loglevel))
 
 	log.Infoln("mqtt-rules connecting to broker", c.Config.Broker)
 	opts := mqtt.NewClientOptions()
