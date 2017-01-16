@@ -30,7 +30,7 @@ func main() {
 	pConfigFile := flag.String("config", "", "(optional) configuration file")
 	pUsername := flag.String("username", "", "(optional) user name for MQTT broker access")
 	pPassword := flag.String("password", "", "(optional) password for MQTT broker access")
-	pLogLevel := flag.String("loglevel", "info", "(optional) logging level (panic, fatal, error, warn, info, debug)")
+	pLogLevel := flag.String("loglevel", "", "(optional) logging level (panic, fatal, error, warn, info, debug)")
 
 	flag.Parse()
 
