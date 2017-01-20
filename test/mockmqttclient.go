@@ -7,8 +7,9 @@ type MockMqttClient interface {
 	IsConnected() bool
 	Connect() bool
 	Disconnect()
+	SetSubscriptionCallback(callback func(string, string))
 	Publish(topic string, qos byte, retained bool, payload interface{}) bool
-	Subscribe(topic string, qos byte, callback func(string, string)) bool
+	Subscribe(topic string, qos byte) bool
 	Unsubscribe(topics ...string) bool
 	IsSubscribed(topic string) bool
 	LastMessage() MockMqttMessage
@@ -51,6 +52,10 @@ func (c *mockMqttClient) Disconnect() {
 	c.connected = false
 }
 
+func (c *mockMqttClient) SetSubscriptionCallback(callback func(string, string)) {
+	c.callback = callback
+}
+
 func (c *mockMqttClient) Publish(topic string, qos byte, retained bool, payload interface{}) bool {
 	c.lastMessage = MockMqttMessage{
 		Topic:    topic,
@@ -65,9 +70,8 @@ func (c *mockMqttClient) Publish(topic string, qos byte, retained bool, payload 
 	return true
 }
 
-func (c *mockMqttClient) Subscribe(topic string, qos byte, callback func(string, string)) bool {
+func (c *mockMqttClient) Subscribe(topic string, qos byte) bool {
 	c.subscriptions[topic] = true
-	c.callback = callback
 	return true
 }
 

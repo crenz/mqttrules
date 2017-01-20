@@ -20,8 +20,9 @@ type MqttClient interface {
 	IsConnected() bool
 	Connect() bool
 	Disconnect()
+	SetSubscriptionCallback(callback func(string, string))
 	Publish(topic string, qos byte, retained bool, payload interface{}) bool
-	Subscribe(topic string, qos byte, callback func(string, string)) bool
+	Subscribe(topic string, qos byte) bool
 	Unsubscribe(topics ...string) bool
 }
 
@@ -105,6 +106,7 @@ func (a *agent) initialize() {
 func New(mqttClient MqttClient, prefix string) Agent {
 	a := &agent{}
 	a.initialize()
+	mqttClient.SetSubscriptionCallback(a.messagehandler)
 	a.mqttClient = mqttClient
 	a.setPrefix(prefix)
 
@@ -116,9 +118,9 @@ func (a *agent) Connect() bool {
 }
 
 func (a *agent) Subscribe() bool {
-	return a.mqttClient.Subscribe(fmt.Sprintf("%sparam/+", a.prefix), byte(1), a.messagehandler) &&
-		a.mqttClient.Subscribe(fmt.Sprintf("%srule/+/+", a.prefix), byte(1), a.messagehandler) &&
-		a.mqttClient.Subscribe(fmt.Sprintf("%s$MQTTRULES", a.prefix), byte(1), a.messagehandler)
+	return a.mqttClient.Subscribe(fmt.Sprintf("%sparam/+", a.prefix), byte(1)) &&
+		a.mqttClient.Subscribe(fmt.Sprintf("%srule/+/+", a.prefix), byte(1)) &&
+		a.mqttClient.Subscribe(fmt.Sprintf("%s$MQTTRULES", a.prefix), byte(1))
 }
 
 func (a *agent) Publish(topic string, qos byte, retained bool, payload string) {
@@ -184,7 +186,7 @@ func (a *agent) ensureSubscription(topic string) bool {
 		a.subscriptions[topic] = subscriptions{parameters: make(map[string]bool), rules: make(map[rulesKey]bool)}
 	}
 	if len(a.subscriptions[topic].parameters) == 0 && len(a.subscriptions[topic].rules) == 0 {
-		if success := a.mqttClient.Subscribe(topic, byte(1), a.messagehandler); !success {
+		if success := a.mqttClient.Subscribe(topic, byte(1)); !success {
 			log.Errorln("Failed to add subscription [%s]")
 			return false
 		}

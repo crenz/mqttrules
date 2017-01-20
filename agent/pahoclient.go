@@ -9,13 +9,15 @@ type PahoClient interface {
 	IsConnected() bool
 	Connect() bool
 	Disconnect()
+	SetSubscriptionCallback(callback func(string, string))
 	Publish(topic string, qos byte, retained bool, payload interface{}) bool
-	Subscribe(topic string, qos byte, callback func(string, string)) bool
+	Subscribe(topic string, qos byte) bool
 	Unsubscribe(topics ...string) bool
 }
 
 type pahoClient struct {
-	c mqtt.Client
+	c                    mqtt.Client
+	subscriptionCallback func(string, string)
 }
 
 func NewPahoClient(o *mqtt.ClientOptions) PahoClient {
@@ -43,6 +45,10 @@ func (c *pahoClient) Disconnect() {
 	c.c.Disconnect(250)
 }
 
+func (c *pahoClient) SetSubscriptionCallback(callback func(string, string)) {
+	c.subscriptionCallback = callback
+}
+
 func (c *pahoClient) Publish(topic string, qos byte, retained bool, payload interface{}) bool {
 	if token := c.c.Publish(topic, qos, retained, payload); token.Wait() && token.Error() != nil {
 		log.WithFields(log.Fields{
@@ -59,9 +65,9 @@ func (c *pahoClient) Publish(topic string, qos byte, retained bool, payload inte
 	return true
 }
 
-func (c *pahoClient) Subscribe(topic string, qos byte, callback func(string, string)) bool {
-	pahoCallback := func(c mqtt.Client, m mqtt.Message) {
-		callback(m.Topic(), string(m.Payload()))
+func (c *pahoClient) Subscribe(topic string, qos byte) bool {
+	pahoCallback := func(cm mqtt.Client, m mqtt.Message) {
+		c.subscriptionCallback(m.Topic(), string(m.Payload()))
 	}
 
 	if token := c.c.Subscribe(topic, qos, pahoCallback); token.Wait() && token.Error() != nil {
