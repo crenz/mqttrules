@@ -18,16 +18,34 @@ type PahoClient interface {
 type pahoClient struct {
 	c                    mqtt.Client
 	subscriptionCallback func(string, string)
+	subscriptions        map[string]byte
 }
 
 func NewPahoClient(o *mqtt.ClientOptions) PahoClient {
 	c := &pahoClient{}
+	c.subscriptions = make(map[string]byte)
+
+	pahoOnConnectCallback := func(cm mqtt.Client) {
+		c.resubscribe()
+	}
+	o.SetOnConnectHandler(pahoOnConnectCallback)
+
 	c.c = mqtt.NewClient(o)
 	return c
 }
 
 func (c *pahoClient) IsConnected() bool {
 	return c.c.IsConnected()
+}
+
+func (c *pahoClient) resubscribe() {
+	pahoCallback := func(cm mqtt.Client, m mqtt.Message) {
+		c.subscriptionCallback(m.Topic(), string(m.Payload()))
+	}
+
+	for topic, qos := range c.subscriptions {
+		c.c.Subscribe(topic, qos, pahoCallback)
+	}
 }
 
 func (c *pahoClient) Connect() bool {
@@ -78,6 +96,7 @@ func (c *pahoClient) Subscribe(topic string, qos byte) bool {
 		}).Error("Error subscribing to MQTT topic")
 		return false
 	}
+	c.subscriptions[topic] = qos
 	log.WithFields(log.Fields{
 		"component": "PahoClient",
 		"topic":     topic,
@@ -93,6 +112,9 @@ func (c *pahoClient) Unsubscribe(topics ...string) bool {
 			"error":     token.Error(),
 		}).Error("Error unsubscribingfrom MQTT topics")
 		return false
+	}
+	for _, topic := range topics {
+		delete(c.subscriptions, topic)
 	}
 	log.WithFields(log.Fields{
 		"component": "PahoClient",
