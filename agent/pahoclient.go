@@ -25,13 +25,19 @@ func NewPahoClient(o *mqtt.ClientOptions) PahoClient {
 	c := &pahoClient{}
 	c.subscriptions = make(map[string]byte)
 
-	pahoOnConnectCallback := func(cm mqtt.Client) {
+	pahoOnConnectHandler := func(cm mqtt.Client) {
 		log.WithFields(log.Fields{
 			"component": "PahoClient",
 		}).Debug("Established connection to broker")
 		c.resubscribe()
 	}
-	o.SetOnConnectHandler(pahoOnConnectCallback)
+	o.SetOnConnectHandler(pahoOnConnectHandler)
+	pahoConnectionLostHandler := func(cm mqtt.Client, e error) {
+		log.WithFields(log.Fields{
+			"component": "PahoClient",
+		}).Debugf("Lost connection to broker: %v", e)
+	}
+	o.SetConnectionLostHandler(pahoConnectionLostHandler)
 
 	c.c = mqtt.NewClient(o)
 	return c
