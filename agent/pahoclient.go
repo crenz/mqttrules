@@ -26,6 +26,9 @@ func NewPahoClient(o *mqtt.ClientOptions) PahoClient {
 	c.subscriptions = make(map[string]byte)
 
 	pahoOnConnectCallback := func(cm mqtt.Client) {
+		log.WithFields(log.Fields{
+			"component": "PahoClient",
+		}).Debug("Established connection to broker")
 		c.resubscribe()
 	}
 	o.SetOnConnectHandler(pahoOnConnectCallback)
@@ -39,12 +42,8 @@ func (c *pahoClient) IsConnected() bool {
 }
 
 func (c *pahoClient) resubscribe() {
-	pahoCallback := func(cm mqtt.Client, m mqtt.Message) {
-		c.subscriptionCallback(m.Topic(), string(m.Payload()))
-	}
-
 	for topic, qos := range c.subscriptions {
-		c.c.Subscribe(topic, qos, pahoCallback)
+		c.Subscribe(topic, qos)
 	}
 }
 
